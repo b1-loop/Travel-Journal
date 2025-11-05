@@ -1,0 +1,84 @@
+name: Notify Discord
+
+on:
+  push:
+    branches:
+      - "**"           # notify on all branches (change if you want)
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Discord
+        uses: actions/github-script@v7
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          script: |
+            const webhook = process.env.DISCORD_WEBHOOK;
+            if (!webhook) {
+              core.setFailed("Missing DISCORD_WEBHOOK secret");
+              return;
+            }
+
+            const repo = `${context.repo.owner}/${context.repo.repo}`;
+            const ev = context.eventName;
+            const payload = context.payload;
+
+            let title = "";
+            let description = "";
+            let url = "";
+            let color = 0x5865F2; // Discord blurple
+
+            if (ev === "push") {
+              const branch = payload.ref?.replace("refs/heads/","") ?? "(unknown)";
+              const commits = (payload.commits || []).slice(0, 5)
+                .map((c, i) => `• ${c.message.split("\n")[0]} — ${c.author?.name || "someone"}`)
+                .join("\n");
+              title = `📦 Push to ${repo}`;
+              description =
+                `**Branch:** ${branch}\n` +
+                `**Pusher:** ${payload.pusher?.name || payload.sender?.login}\n` +
+                `**Commits:** ${payload.commits?.length ?? 0}\n\n` +
+                (commits ? `**Recent:**\n${commits}` : "");
+              url = payload.compare || `https://github.com/${repo}/commits/${branch}`;
+              color = 0x57F287; // green
+            } else if (ev === "pull_request") {
+              const pr = payload.pull_request;
+              const action = payload.action;
+              const merged = pr.merged ? " (merged)" : "";
+              title = `🔀 PR #${pr.number} ${action}${merged}: ${pr.title}`;
+              description =
+                `**Author:** ${pr.user?.login}\n` +
+                `**Base:** ${pr.base?.ref} ← **Head:** ${pr.head?.ref}\n` +
+                `**State:** ${pr.state}${pr.draft ? " (draft)" : ""}`;
+              url = pr.html_url;
+              color = pr.merged ? 0xFEE75C : (action === "closed" ? 0xED4245 : 0x5865F2);
+            } else {
+              title = `📣 ${ev} in ${repo}`;
+              description = "A repository event occurred.";
+              url = `https://github.com/${repo}`;
+            }
+
+            const embed = {
+              title,
+              description,
+              url,
+              timestamp: new Date().toISOString(),
+              color,
+              footer: { text: repo },
+            };
+
+            // Use native fetch available in the Actions runtime (Node 20)
+            const res = await fetch(webhook, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ embeds: [embed] }),
+            });
+
+            if (!res.ok) {
+              const text = await res.text();
+              core.setFailed(`Discord webhook failed: ${res.status} ${res.statusText} — ${text}`);
+            }
