@@ -4,7 +4,8 @@
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello, World!");
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            App.Run();
         }
     }
 }
