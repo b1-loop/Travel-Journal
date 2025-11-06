@@ -9,6 +9,24 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Data-JSON\TravelJournal-JSON.json" />
+    <None Remove="Data-JSON\trips.json" />
+    <None Remove="Data-JSON\users.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Data-JSON\TravelJournal-JSON.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data-JSON\trips.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data-JSON\users.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Spectre.Console" Version="0.53.0" />
     <PackageReference Include="Spectre.Console.Cli" Version="0.53.0" />
   </ItemGroup>

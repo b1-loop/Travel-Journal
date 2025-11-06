@@ -1,0 +1,28 @@
+﻿[
+    {
+        "username": "Georgia",
+        "id": "trip 001",
+        "type": "business",
+        "destination": "New York",
+        "title": "Business Meeting",
+        "start_date": "2024-07-10",
+        "end_date": "2024-07-15",
+        "notes": "Meeting with clients at the headquarters."
+
+    },
+
+
+    {
+        "username": "Mikael",
+        "id": "trip 002",
+        "type": "leisure",
+        "destination": "Hawaii",
+        "title": "Summer Vacation",
+        "start_date": "2024-08-01",
+        "end_date": "2024-08-14",
+        "notes": "Relaxing on the beach and exploring islands."
+
+    }
+
+
+]

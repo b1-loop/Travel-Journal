@@ -5,7 +5,16 @@
         static void Main(string[] args)
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8; // All text visas korrekt inklusive emojis
+
+            //Laddar användardata med en progressbar
+            AccountStore.LoadWithProgress();
+
+            //Laddar trips från JSON fil
+            TripStore.Load();
+
             App.Run();
+
+            
         }
     }
 }

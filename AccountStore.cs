@@ -79,6 +79,10 @@ namespace Travel_Journal
 
             // Skriver JSON-strängen till filen (sparar användardata)
             File.WriteAllText(Paths.UsersFile, json);
+
+            //  Visa JSON i konsolen för testning
+            Console.WriteLine("JSON data saved to users.json:");
+            Console.WriteLine(json);
         }
 
 
@@ -99,11 +103,20 @@ namespace Travel_Journal
             var idx = accounts.FindIndex(a => a.UserName == acc.UserName);
 
             // Om kontot finns (index >= 0), ersätt det gamla kontot med det nya
-            if (idx >= 0) accounts[idx] = acc;
-        }
+            if (idx >= 0) 
+                accounts[idx] = acc;
+            // Sparar ändringarna till fil
+            Save();
+
+            
+
+
+    }
 
     }
 }
+
+
 
 
 
