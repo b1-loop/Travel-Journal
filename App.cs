@@ -1,243 +1,258 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Spectre.Console;
-using System.IO;
-using System.Text.Json;
-using Spectre.Console.Cli;
+﻿using Spectre.Console;
+using System;
+using System.Threading;
 
 namespace Travel_Journal
 {
     public static class App
     {
+        // === Huvudmetoden som startar hela programmet ===
         public static void Run()
         {
-            // Visar en startskärm / splash-animation
+            // Säkerställer att "data"-mappen finns innan vi läser/sparar något
+            Paths.EnsureDataDir();
+
+            // Visar ett snyggt intro med titel (Travel Journal)
             UI.Splash();
 
-            // Laddar användardata med en progressbar
+            // Laddar alla registrerade användarkonton från users.json
             AccountStore.LoadWithProgress();
 
-            // Huvudloop för programmet – kör tills användaren väljer att avsluta
+            // Huvudmeny-loop: körs tills användaren väljer "Exit"
             while (true)
             {
-                // Visar huvudmenyn och sparar användarens val
-                var choice = UI.MainMenu();
+                var choice = UI.MainMenu(); // Visar menyn (Register / Login / Forgot password / Exit)
 
-                // Hanterar menyvalet
                 if (choice == "Register")
-                    Register(); // Registrera nytt konto
+                    Register(); // Gå till registreringsflödet
                 else if (choice == "Login")
-                    Login(); // Logga in på befintligt konto
+                    Login(); // Gå till inloggning
                 else if (choice == "Forgot password")
-                    ForgotPassword(); // Glömt lösenord
+                    ForgotPassword(); // Återställ lösenord
                 else
                 {
-                    // Om användaren väljer att avsluta programmet
+                    // Avslutar programmet
                     UI.Transition("Exiting...");
-                    AnsiConsole.MarkupLine("[green]Thank you for using the program![/]");
-                    AnsiConsole.MarkupLine("[grey]Have a great day! [/]");
-                    System.Threading.Thread.Sleep(1200);
-                    return; // Avslutar programmet
+                    AnsiConsole.MarkupLine("[green]Thank you for using Travel Journal![/]");
+                    Thread.Sleep(1000);
+                    return; // Avsluta applikationen
                 }
             }
         }
 
-        // -------- Register --------
+        // === Registrerar ett nytt användarkonto ===
         private static void Register()
         {
-            // Visar en övergångsanimation med rubrik
-            UI.Transition("Register account");
+            UI.Transition("Register Account");
 
-            // Frågar efter användarnamn
+            // Fråga användaren efter ett användarnamn
             var username = AnsiConsole.Ask<string>("Username:");
 
-            // Kollar om användaren redan finns
+            // Kolla om det redan finns ett konto med det namnet
             if (AccountStore.Exists(username))
             {
                 UI.Warn("User already exists!");
                 return;
             }
 
-            // Frågar efter lösenord (dolt)
+            // Fråga efter lösenord (dolt i konsolen)
             var password = AnsiConsole.Prompt(new TextPrompt<string>("Password:").Secret());
 
-            // Skapar nytt kontoobjekt
+            // Skapa ett nytt kontoobjekt
             var acc = new Account();
 
-            // Försöker registrera kontot, kontrollerar lösenordets giltighet
+            // Kolla att lösenordet följer reglerna
             if (!acc.Register(username, password))
             {
-                UI.Error("Password requirements: at least 6 characters, one uppercase, one lowercase, one number, one special character.");
+                UI.Error("Password requirements: min 6 chars, uppercase, lowercase, number, special.");
                 return;
             }
 
-            // Genererar återställningskod och sätter skapelsedatum
+            // Skapa en återställningskod och spara tidpunkten kontot skapades
             acc.RecoveryCode = Util.GenerateRecoveryCode();
             acc.CreatedAt = DateTime.UtcNow;
 
-            // Sparar kontot med status-animation
+            // Visa spinner medan kontot sparas till users.json
             UI.WithStatus("Saving account...", () =>
             {
                 AccountStore.Add(acc);
                 AccountStore.Save();
             });
 
-            // Skapar en grid-layout för att snyggt visa återställningskod
-            var grid = new Grid();
-            grid.AddColumn();
-            grid.AddRow(new Markup($"User [bold]{acc.UserName}[/] created."));
-            grid.AddRow(new Markup("[yellow]IMPORTANT:[/] Save your [bold]recovery code[/] for forgotten password!"));
-            grid.AddRow(new Markup($"[bold green]{acc.RecoveryCode}[/]"));
-
-            // Skapar en panel runt texten med rubrik
-            var panel = new Panel(grid)
+            // Visa bekräftelse i en snygg panel
+            var panel = new Panel($"[green]✅ User {acc.UserName} created successfully![/]\n[yellow]Recovery code:[/] [bold]{acc.RecoveryCode}[/]")
             {
                 Border = BoxBorder.Rounded,
-                Header = new PanelHeader("Registration Succesful", Justify.Center)
+                Header = new PanelHeader("Registration Successful", Justify.Center)
             };
-
-            // Skriver ut panelen i terminalen
             AnsiConsole.Write(panel);
         }
 
-        // -------- Login --------
+        // === Loggar in en befintlig användare ===
         private static void Login()
         {
-            // Visar övergång till inloggningsskärm
-            UI.Transition("Log in");
+            UI.Transition("Login");
 
-            // Frågar efter användarnamn och lösenord (dolt)
+            // Be användaren skriva in användarnamn och lösenord
             var username = AnsiConsole.Ask<string>("Username:");
             var password = AnsiConsole.Prompt(new TextPrompt<string>("Password:").Secret());
 
-            // Hämtar kontot från AccountStore
+            // Försök hämta kontot ur AccountStore
             var acc = AccountStore.Get(username);
 
-            // Om inget konto hittas, visa felmeddelande
             if (acc == null)
             {
-                UI.Error("Unknown username");
+                // Om inget konto hittas med det namnet
+                UI.Error("Unknown username.");
                 return;
             }
 
-            // Variabel för att spara resultatet av inloggningen
-            var ok = false;
+            bool ok = false;
 
-            // Visar status-animation under verifiering
+            // Spinner som visar att inloggningen kontrolleras
             UI.WithStatus("Verifying...", () =>
             {
                 ok = acc.Login(username, password);
-                System.Threading.Thread.Sleep(350);
+                Thread.Sleep(400);
             });
 
-            // Om inloggningen misslyckades
             if (!ok)
             {
-                UI.Error("Wrong Username or password");
+                UI.Error("Wrong username or password.");
                 return;
             }
 
-            // Bekräfta lyckad inloggning
-            UI.Success($"Logged in as {username}!");
-            
-            TripService service = new TripService();
+            // Inloggning lyckades 🎉
+            UI.Success($"Logged in as [bold]{username}[/]! ✈️");
 
-            // Enkel profilmeny efter inloggning
+            // Skapa en TripService som laddar/sparar användarens personliga trips.json
+            var service = new TripService(username);
+
+            // === Meny som visas när användaren är inloggad ===
             while (true)
             {
-                // Val mellan att visa profil eller logga ut
+                // Visa alternativ som användaren kan göra
                 var sub = AnsiConsole.Prompt(
                     new SelectionPrompt<string>()
-                        .Title("[bold cyan]Menu[/]")
-                        .HighlightStyle(new Style(Color.Chartreuse1))
-                        .AddChoices("View profile", "Add upcoming trip", "Add previous trip", "Show all trips", "Log out"));
+                        .Title($"[bold cyan]Welcome, {username}![/] Choose an option:")
+                        .HighlightStyle(new Style(Color.DeepSkyBlue1))
+                        .AddChoices(
+                            "👤 View Profile",
+                            "➕ Add Upcoming Trip",
+                            "🧳 Add Previous Trip",
+                            "📋 Show All Trips",
+                            "🚪 Log out"
+                        )
+                );
 
-                if (sub == "View profile")
+                // === Hantera menyval ===
+                if (sub == "👤 View Profile")
+                    ShowProfile(acc); // Visa användarinfo
+                else if (sub == "➕ Add Upcoming Trip")
                 {
-                    // Skapar tabell med kontoinformation
-                    var t = new Table();
-                    t.Border = TableBorder.Rounded;
-                    t.BorderStyle = new Style(Color.Grey50);
-                    t.AddColumn("Field");
-                    t.AddColumn("Value");
-                    t.AddRow("Username", acc.UserName);
-                    t.AddRow("Created (UTC)", acc.CreatedAt == default ? "—" : acc.CreatedAt.ToString("yyyy-MM-dd HH:mm"));
-                    t.AddRow("Recovery-code", acc.RecoveryCode);
-
-                    // Skriver ut tabellen
-                    AnsiConsole.Write(t);
+                    service.AddUpcomingTrip(); // Lägg till ny kommande resa
+                    Pause(); // Vänta på ENTER
                 }
-                else if (sub == "Add upcoming trip")
+                else if (sub == "🧳 Add Previous Trip")
                 {
-                    service.AddUpcomingTrip();
+                    service.AddPreviousTrip(); // Lägg till redan genomförd resa
+                    Pause();
                 }
-                else if (sub == "Add previous trip")
+                else if (sub == "📋 Show All Trips")
                 {
-                    service.AddPreviousTrip();
+                    service.ShowAllTrips(); // Visa alla resor i tabell
+                    Pause();
                 }
-                else if (sub == "Show all trips")
+                else if (sub == "🚪 Log out")
                 {
-                    service.ShowAllTrips();
+                    // När användaren loggar ut
+                    UI.Transition("Logging out...");
+                    UI.Info($"Goodbye, {username}! 👋");
+                    Thread.Sleep(800);
+                    return; // Gå tillbaka till huvudmenyn
                 }
-                else break; // Logga ut
             }
         }
 
-        // -------- Forgot Password --------
+        // === Visar användarens profilinfo (används i inloggad meny) ===
+        private static void ShowProfile(Account acc)
+        {
+            // Skapar en tabell för att snyggt presentera användarinfo
+            var t = new Table()
+                .Border(TableBorder.Rounded)
+                .BorderStyle(new Style(Color.Grey50));
+
+            // Kolumnrubriker
+            t.AddColumn("Field");
+            t.AddColumn("Value");
+
+            // Fyll tabellen med användarens data
+            t.AddRow("Username", acc.UserName);
+            t.AddRow("Created", acc.CreatedAt == default ? "—" : acc.CreatedAt.ToString("yyyy-MM-dd HH:mm"));
+            t.AddRow("Recovery Code", acc.RecoveryCode);
+
+            // Skriv ut tabellen till konsolen
+            AnsiConsole.Write(t);
+        }
+
+        // === Återställ glömt lösenord ===
         private static void ForgotPassword()
         {
-            // Visar övergång till lösenordsåterställning
-            UI.Transition("Forgotten Password");
+            UI.Transition("Forgot Password");
 
-            // Frågar efter nödvändiga uppgifter
+            // Fråga användaren om nödvändig information
             var username = AnsiConsole.Ask<string>("Username:");
             var code = AnsiConsole.Ask<string>("Recovery code:");
-            var newPwd = AnsiConsole.Prompt(new TextPrompt<string>("New Password:").Secret());
-            var confirm = AnsiConsole.Prompt(new TextPrompt<string>("Confirm new password:").Secret());
+            var newPwd = AnsiConsole.Prompt(new TextPrompt<string>("New password:").Secret());
+            var confirm = AnsiConsole.Prompt(new TextPrompt<string>("Confirm password:").Secret());
 
-            // Säkerställer att de två lösenorden matchar
+            // Säkerställ att användaren skrev samma lösenord två gånger
             if (!string.Equals(newPwd, confirm, StringComparison.Ordinal))
             {
-                UI.Error("Password doesn't match");
+                UI.Error("Passwords do not match.");
                 return;
             }
 
-            // Hämtar kontot baserat på användarnamnet
+            // Hämta kontot för att kunna uppdatera det
             var acc = AccountStore.Get(username);
             if (acc == null)
             {
-                UI.Error("Unknown username");
+                UI.Error("Unknown username.");
                 return;
             }
 
-            // Kontrollerar om återställningskoden stämmer
+            // Kontrollera att återställningskoden är korrekt
             if (!string.Equals(acc.RecoveryCode, code, StringComparison.Ordinal))
             {
-                UI.Error("Wrong recovery code");
+                UI.Error("Wrong recovery code.");
                 return;
             }
 
-            // Kollar att det nya lösenordet uppfyller säkerhetskrav
+            // Kontrollera att det nya lösenordet är giltigt
             if (!acc.CheckPassword(newPwd))
             {
-                UI.Error("New password does not meet the requirements");
+                UI.Error("New password does not meet the requirements.");
                 return;
             }
 
-            // Uppdaterar lösenordet med statusanimation
+            // Uppdatera kontots lösenord och spara
             UI.WithStatus("Updating password...", () =>
             {
                 acc.Password = newPwd;
-                acc.RecoveryCode = Util.GenerateRecoveryCode(); // Skapar ny återställningskod
+                acc.RecoveryCode = Util.GenerateRecoveryCode(); // Skapa ny kod för säkerhet
                 AccountStore.Update(acc);
                 AccountStore.Save();
             });
 
-            // Bekräftelse till användaren
             UI.Success("Password reset! A new recovery code has been generated.");
+        }
+
+        // === Paus efter visning/åtgärd ===
+        private static void Pause()
+        {
+            // Enkel metod för att låta användaren läsa klart innan nästa meny visas
+            AnsiConsole.MarkupLine("\n[grey]Press [bold]ENTER[/] to continue...[/]");
+            Console.ReadLine();
         }
     }
 }
