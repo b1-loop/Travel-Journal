@@ -1,23 +1,31 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
-using Spectre.Console;
 
 namespace Travel_Journal
 {
     public static class Paths
     {
-        // Bas-katalogen där programmet körs (t.ex. bin/Debug/net8.0/)
+        // === Bas-katalogen där programmet körs ===
+        // Exempel: bin/Debug/net8.0/
+        // Används som utgångspunkt för att bygga hela filsökvägen.
         public static readonly string BaseDir = AppContext.BaseDirectory;
 
-        // Katalogen där datafiler sparas (skapas som en undermapp till BaseDir)
+        // === Datamappen ===
+        // Här sparas all information som JSON-filer.
+        // Vi lägger både "users.json" (alla konton) och "trips.json" (per användare) här.
         public static readonly string DataDir = Path.Combine(BaseDir, "data");
 
-        // Den fullständiga sökvägen till användarfilen (users.json) i data-mappen
+        // === Användarfilen (alla registrerade konton) ===
+        // Denna fil används av AccountStore för att lagra alla användare.
         public static readonly string UsersFile = Path.Combine(DataDir, "users.json");
-    }
 
+        // === Säkerställer att datamappen finns ===
+        // Anropas vid programmets start, innan vi försöker läsa eller spara filer.
+        public static void EnsureDataDir()
+        {
+            // Om mappen "data" inte finns, skapa den automatiskt.
+            if (!Directory.Exists(DataDir))
+                Directory.CreateDirectory(DataDir);
+        }
+    }
 }
