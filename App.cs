@@ -142,6 +142,7 @@ namespace Travel_Journal
                             "🧳 Add Previous Trip",
                             "📋 Show All Trips",
                             "💰 Budget & Savings",
+                            "📊 Statistics",
                             "🚪 Log out"
                         )
                 );
@@ -168,6 +169,15 @@ namespace Travel_Journal
                 {
                     var budgetService = new BudgetService(acc, service);
                     budgetService.ShowBudgetMenu();
+                }
+                else if (sub == "📊 Statistics")
+                {
+
+                    var statsService = new Statistics(service);
+                    statsService.StatsMenu();
+
+
+                    Pause();
                 }
                 else if (sub == "🚪 Log out")
                 {
