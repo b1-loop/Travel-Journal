@@ -11,17 +11,7 @@ namespace Travel_Journal
 {
     public static class AccountStore 
     {
-        private static List<Account> accounts = new();
-
-
-        //public static void Load() // Metoden Används inte ska den användas i framtiden eller tas bort?
-        //{
-        //    Directory.CreateDirectory(Paths.DataDir);
-        //    if (!File.Exists(Paths.UsersFile)) return;
-        //    var json = File.ReadAllText(Paths.UsersFile);
-        //    accounts = JsonSerializer.Deserialize<List<Account>>(json) ?? new();
-        //}
-
+        private static List<Account> accounts = new(); 
 
         public static void LoadWithProgress()
         {
