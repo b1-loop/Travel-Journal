@@ -1,5 +1,6 @@
 ﻿using Spectre.Console;
 using System;
+using System.Threading.Tasks;
 
 namespace Travel_Journal
 {
@@ -9,6 +10,7 @@ namespace Travel_Journal
     /// - hantera trips
     /// - budget
     /// - statistik
+    /// - AI Travel Assistant
     /// - logga ut
     /// </summary>
     public class UserSession
@@ -22,8 +24,8 @@ namespace Travel_Journal
             _tripService = new TripService(account.UserName);
         }
 
-        // 🧭 Startar menyn för inloggad användare
-        public void Start()
+        // 🧭 Startar menyn för inloggad användare (nu asynkron för AI)
+        public async Task Start()
         {
             while (true)
             {
@@ -39,6 +41,7 @@ namespace Travel_Journal
                             "💰 Budget & Savings",
                             "📊 Statistics",
                             "🔄 Update/Change Trips",
+                            "AI Travel Assistant 🤖✈️",
                             "🚪 Log out"
                         )
                 );
@@ -80,6 +83,11 @@ namespace Travel_Journal
                     _tripService.UpdateTrips(trips);
                     Pause();
                 }
+                else if (sub == "AI Travel Assistant 🤖✈️")
+                {
+                    await ShowAISuggestionAsync(); // ✅ Asynkront AI-anrop
+                    Pause();
+                }
                 else if (sub == "🚪 Log out")
                 {
                     UI.Transition("Logging out...");
@@ -105,6 +113,30 @@ namespace Travel_Journal
             t.AddRow("Savings", $"{_account.Savings} kr");
 
             AnsiConsole.Write(t);
+        }
+
+        // 🤖 AI Travel Assistant – genererar reseförslag via OpenAI
+        public async Task ShowAISuggestionAsync()
+        {
+            UI.Transition("AI Travel Assistant 🤖✈️");
+
+            // Fråga användaren om resepreferenser
+            var budget = AnsiConsole.Ask<decimal>("What is your [green]budget (SEK)[/]?");
+            var type = AnsiConsole.Ask<string>("What kind of [blue]trip[/] do you want? (e.g. city, beach, adventure, culture)");
+            var days = AnsiConsole.Ask<int>("How many [yellow]days[/] do you plan to travel?");
+
+            // Skapa AI-klassen och hämta förslag
+            var ai = new AITravelAssistant();
+            string suggestion = await ai.GetTravelSuggestionAsync(budget, type, days);
+
+            // Visa resultatet snyggt i terminalen
+            var panel = new Panel($"[white]{suggestion}[/]")
+            {
+                Header = new PanelHeader("🌍 Your AI Travel Suggestion"),
+                Border = BoxBorder.Rounded,
+                BorderStyle = new Style(Color.Cyan1)
+            };
+            AnsiConsole.Write(panel);
         }
 
         // ⏸️ Enkel paus innan nästa meny
