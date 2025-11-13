@@ -85,6 +85,7 @@ namespace Travel_Journal
         // === Lägger till en framtida resa (planerad resa) ===
         public void AddUpcomingTrip()
         {
+            AnsiConsole.Clear();
             // Snygg övergångsrubrik
             UI.Transition("Add Upcoming Trip ✈️");
 
@@ -142,6 +143,7 @@ namespace Travel_Journal
         // === Lägger till en tidigare resa (redan genomförd) ===
         public void AddPreviousTrip()
         {
+            AnsiConsole.Clear();
             UI.Transition("Add Previous Trip 🧳");
 
             // Fråga användaren om detaljer från resan
@@ -241,6 +243,7 @@ namespace Travel_Journal
         // === Visar alla resor i tabellform ===
         public void ShowAllTrips()
         {
+            AnsiConsole.Clear();
             // Rubrik/avdelare
             UI.Transition($"All Trips for {username} 🌍");
 

@@ -21,6 +21,7 @@ namespace Travel_Journal
         {
             while (true)
             {
+                AnsiConsole.Clear();
                 UI.Transition("💰 Travel Savings Account");
 
                 // Visa saldo längst upp
@@ -53,6 +54,7 @@ namespace Travel_Journal
         // === Sätta in pengar ===
         private void Deposit()
         {
+            AnsiConsole.Clear();
             decimal amount = AnsiConsole.Ask<decimal>("How much would you like to [green]deposit[/]?");
             if (amount <= 0)
             {
@@ -69,6 +71,7 @@ namespace Travel_Journal
         // === Ta ut pengar ===
         private void Withdraw()
         {
+            AnsiConsole.Clear();
             decimal amount = AnsiConsole.Ask<decimal>("How much would you like to [red]withdraw[/]?");
             if (amount <= 0)
             {

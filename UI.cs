@@ -22,6 +22,7 @@ namespace Travel_Journal
         // Returnerar det val användaren gör (t.ex. "Login").
         public static string MainMenu()
         {
+            AnsiConsole.Clear(); // rensa inann huvudmenyn visas
             // Använder Spectre.Console:s SelectionPrompt för att skapa en interaktiv meny.
             return AnsiConsole.Prompt(
                 new SelectionPrompt<string>()
@@ -36,6 +37,7 @@ namespace Travel_Journal
         // för att markera att vi byter del i programmet (t.ex. Login, Add Trip).
         public static void Transition(string title)
         {
+            AnsiConsole.Clear(); // rensa inann avdelaren visas
             AnsiConsole.Write(new Rule($"[white]{title}[/]").RuleStyle("grey50"));
         }
 
