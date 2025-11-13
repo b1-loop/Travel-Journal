@@ -15,7 +15,6 @@ namespace Travel_Journal
         public int Score { get; set; }                     // Betyg 1–5
         public string Review { get; set; }                 // Kommentar eller minne
         public decimal PlannedBudget { get; set; }         // Planerad budget
-        public string TimeZone { get; set; }               // Tidszon (t.ex. "Europe/Stockholm")
 
         public decimal RemainingBudget => PlannedBudget - Cost; // Beräknad egenskap för återstående budget
 

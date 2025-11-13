@@ -117,7 +117,6 @@ namespace Travel_Journal
                 StartDate = startDate,
                 EndDate = endDate,
                 NumberOfPassengers = passengers,
-                TimeZone = "Europe/Stockholm"
             };
 
             // Lägg till i listan och spara till fil
@@ -145,7 +144,6 @@ namespace Travel_Journal
             // Fråga användaren om detaljer från resan
             string country = AnsiConsole.Ask<string>("Which [bold]country[/] did you visit?");
             string city = AnsiConsole.Ask<string>("Which [bold]city[/]?");
-            string currency = AnsiConsole.Ask<string>("What [bold]currency[/]? (e.g. SEK, USD, EUR)");
             decimal budget = AskDecimal("What was your planned [bold]budget[/]?");
             decimal cost = AskDecimal("What was the total [bold]cost[/]?");
 
@@ -178,7 +176,6 @@ namespace Travel_Journal
                 NumberOfPassengers = passengers,
                 Score = score,
                 Review = review,
-                TimeZone = "Europe/Stockholm"
             };
 
             // Lägg till resan i listan och spara
@@ -188,8 +185,8 @@ namespace Travel_Journal
             // Visa bekräftelse för användaren
             var panel = new Panel(
                 $"[green]✅ Trip to [bold]{city}, {country}[/] added successfully![/]\n" +
-                $"[grey]Budget:[/] {budget} {currency}\n" +
-                $"[grey]Cost:[/] {cost} {currency}\n" +
+                $"[grey]Budget:[/] {budget}\n" +
+                $"[grey]Cost:[/] {cost}\n" +
                 $"[grey]Rating:[/] {score}/5\n" +
                 $"[grey]Dates:[/] {startDate:yyyy-MM-dd} → {endDate:yyyy-MM-dd}")
             {
@@ -234,88 +231,95 @@ namespace Travel_Journal
                 }
             }
         }
-        
+
         // === Visar alla resor i tabellform ===
         public void ShowAllTrips()
         {
-            // Rubrik/avdelare
             UI.Transition($"All Trips for {username} 🌍");
 
-            // Om användaren inte har några resor än
-            if (trips.Count == 0)
+            if (!trips.Any())
             {
                 UI.Warn("No trips found for this account.");
                 return;
             }
 
-            // Skapar en snygg tabell med Spectre.Console
-            var table = new Table()
-                .Centered()
-                .Border(TableBorder.Rounded)
-                .BorderColor(Color.Grey50);
+            // --- 1. Skapa kategorier ---
+            var categories = new List<(string Title, Color Color, List<Trip> List)>
+    {
+        ("Ongoing Trips",   Color.Yellow, trips.Where(t => !t.IsUpcoming && !t.IsCompleted).OrderBy(t => t.StartDate).ToList()),
+        ("Upcoming Trips",  Color.Green,  trips.Where(t => t.IsUpcoming).OrderBy(t => t.StartDate).ToList()),
+        ("Completed Trips", Color.Grey,   trips.Where(t => t.IsCompleted).OrderBy(t => t.StartDate).ToList())
+    };
 
-            // Kolumnrubriker
-            table.AddColumn("[bold cyan]Country[/]");
-            table.AddColumn("[bold cyan]City[/]");
-            table.AddColumn("[bold cyan]Dates[/]");
-            table.AddColumn("[bold cyan]Budget[/]");
-            table.AddColumn("[bold cyan]Cost[/]");
-            table.AddColumn("[bold cyan]Status[/]");
-            table.AddColumn("[bold cyan]Rating[/]");
-            table.AddColumn("[bold cyan]Review[/]");
-            table.AddColumn("[bold cyan]Pax[/]");
-
-            // Fyll tabellen med data
-            foreach (var trip in trips.OrderBy(t => t.StartDate))
+            // --- 2. Loopa och visa varje kategori ---
+            foreach (var (title, color, tripList) in categories)
             {
-                string dateRange = $"{trip.StartDate:yyyy-MM-dd} → {trip.EndDate:yyyy-MM-dd}";
-                string budget = $"{trip.PlannedBudget}";
-                string cost = trip.Cost > 0 ? $"{trip.Cost}" : "[grey]—[/]";
-                string rating = trip.Score > 0 ? $"{trip.Score}/5" : "[grey]—[/]";
-                string review = string.IsNullOrWhiteSpace(trip.Review) ? "[grey]No review[/]" : trip.Review;
-                string passengers = $"{trip.NumberOfPassengers}";
+                AnsiConsole.WriteLine();
 
-                // Bestäm färg beroende på status
-                string statusText;
-                Color color;
+                var rule = new Rule($"[bold {color}]{title}[/]")
+                {
+                    Justification = Justify.Center
+                };
+                AnsiConsole.Write(rule);
 
-                if (trip.IsUpcoming)
+                if (!tripList.Any())
                 {
-                    statusText = "Upcoming";
-                    color = Color.Green;
-                }
-                else if (trip.IsCompleted)
-                {
-                    statusText = "Completed";
-                    color = Color.Grey;
-                }
-                else
-                {
-                    statusText = "Ongoing";
-                    color = Color.Yellow;
+                    AnsiConsole.MarkupLine("[grey]No trips in this category.[/]");
+                    continue;
                 }
 
-                // Lägg till rad i tabellen
-                table.AddRow(
-                    new Markup($"[{color}]{trip.Country}[/]"),
-                    new Markup($"[{color}]{trip.City}[/]"),
-                    new Markup($"[{color}]{dateRange}[/]"),
-                    new Markup($"[{color}]{budget}[/]"),
-                    new Markup($"[{color}]{cost}[/]"),
-                    new Markup($"[{color}]{statusText}[/]"),
-                    new Markup($"[{color}]{rating}[/]"),
-                    new Markup($"[{color}]{review}[/]"),
-                    new Markup($"[{color}]{passengers}[/]")
-                );
+                var table = new Table()
+                    .Centered()
+                    .Border(TableBorder.Rounded)
+                    .BorderColor(Color.Grey50);
+
+                // Kolumner
+                table.AddColumn("[bold cyan]Country[/]");
+                table.AddColumn("[bold cyan]City[/]");
+                table.AddColumn("[bold cyan]Dates[/]");
+                table.AddColumn("[bold cyan]Budget[/]");
+                table.AddColumn("[bold cyan]Cost[/]");
+                table.AddColumn("[bold cyan]Status[/]");
+                table.AddColumn("[bold cyan]Rating[/]");
+                table.AddColumn("[bold cyan]Review[/]");
+                table.AddColumn("[bold cyan]Pax[/]");
+
+                // Fyll tabell
+                foreach (var trip in tripList)
+                {
+                    string dateRange = $"{trip.StartDate:yyyy-MM-dd} → {trip.EndDate:yyyy-MM-dd}";
+                    string budget = $"{trip.PlannedBudget}";
+                    string cost = trip.Cost > 0 ? $"{trip.Cost}" : "[grey]—[/]";
+                    string rating = trip.Score > 0 ? $"{trip.Score}/5" : "[grey]—[/]";
+                    string review = string.IsNullOrWhiteSpace(trip.Review) ? "[grey]No review[/]" : trip.Review;
+                    string passengers = $"{trip.NumberOfPassengers}";
+
+                    string statusText = trip.IsUpcoming ? "Upcoming" :
+                                        trip.IsCompleted ? "Completed" : "Ongoing";
+
+                    table.AddRow(
+                        new Markup($"[{color}]{trip.Country}[/]"),
+                        new Markup($"[{color}]{trip.City}[/]"),
+                        new Markup($"[{color}]{dateRange}[/]"),
+                        new Markup($"[{color}]{budget}[/]"),
+                        new Markup($"[{color}]{cost}[/]"),
+                        new Markup($"[{color}]{statusText}[/]"),
+                        new Markup($"[{color}]{rating}[/]"),
+                        new Markup($"[{color}]{review}[/]"),
+                        new Markup($"[{color}]{passengers}[/]")
+                    );
+                }
+
+                AnsiConsole.Write(table);
             }
 
-            // Skriv ut tabellen i terminalen
-            AnsiConsole.Write(table);
-
-            // Skriv ut total antal resor som avslutning
-            AnsiConsole.Write(new Rule($"[grey]Total trips: {trips.Count}[/]"));
+            // ---- Footer ----
+            var footer = new Rule($"[grey]Total trips: {trips.Count}[/]")
+            {
+                Justification = Justify.Center
+            };
+            AnsiConsole.Write(footer);
         }
-
         public List<Trip> GetTrips() //Hjälpmetod för att hämta resor.
         {
             return trips;
