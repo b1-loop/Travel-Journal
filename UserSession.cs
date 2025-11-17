@@ -53,6 +53,7 @@ namespace Travel_Journal
                             "📊 Statistics",
                             "🔄 Edit Trips",
                             "🤖✈️ AI Travel Assistant",
+                            "🌍 World Map",
                             "🔧 Support & Help",
                             "🚪 Log out"
                         )
@@ -120,6 +121,15 @@ namespace Travel_Journal
 
                     // 👈 Viktigt: fortsätt loopen utan att avsluta sessionen
                     continue;
+                }
+
+                else if (sub == "🌍 World Map")
+                {
+                    
+                    var tripsForUser = _tripService.GetTrips();
+                    // eller t.ex: tripService.GetTripsByAccountId(currentAccount.Id);
+
+                    WorldMap.ShowWorldMap(tripsForUser);
                 }
 
                 // === 🔧 Menyval: Support & Hjälp ===
