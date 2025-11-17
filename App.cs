@@ -31,7 +31,6 @@ namespace Travel_Journal
                 switch (choice)
                 {
                     case "Register":
-                        AnsiConsole.Clear(); // 
                         // === Registrera nytt konto ===
                         UI.Transition("Register Account"); // Snygg övergångstext
 
@@ -45,7 +44,6 @@ namespace Travel_Journal
                         break;
 
                     case "Login":
-                        AnsiConsole .Clear();
                         // === Logga in på befintligt konto ===
                         UI.Transition("Login");
 
@@ -70,7 +68,6 @@ namespace Travel_Journal
                         break;
 
                     case "Forgot password":
-                        AnsiConsole.Clear();
                         // === Återställ lösenord ===
                         UI.Transition("Forgot Password");
 

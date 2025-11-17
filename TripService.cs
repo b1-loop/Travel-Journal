@@ -682,8 +682,10 @@ namespace Travel_Journal
                 // Bekräftelse till användaren
                 AnsiConsole.MarkupLine(
                     $"[green]✅ Trip [bold]{selectedTrip.City}, {selectedTrip.Country}[/] has been deleted successfully![/]");
-                UserSession.Pause();
-            }
+            };
+            UserSession.Pause();
+            AnsiConsole.Clear();
+        }
         }
     }
-}
+
