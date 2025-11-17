@@ -101,7 +101,12 @@ namespace Travel_Journal
                         await Task.Delay(1000);
                         return; // Avslutar Run() och programmet
                 }
+                //Testa UNDO/REDO TEXT EDITOR
+                TextEditor editor = new TextEditor("");//skapar ny text editor med tom text
+                editor.RunMenu();//kör Undo/Redo meny
+
             }
         }
+        
     }
 }

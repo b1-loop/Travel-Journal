@@ -7,7 +7,7 @@ namespace Travel_Journal
         static async Task Main(string[] args)
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8; // All text visas korrekt inklusive emojis
-            await App.Run();
+           await App.Run();
         }
     }
 }

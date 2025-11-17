@@ -5,6 +5,10 @@ namespace Travel_Journal
 {
     public class Trip
     {
+        private decimal budget;
+        private object score;
+        private object value;
+
         public Guid Id { get; set; } = Guid.NewGuid();     // Unikt ID för varje resa
         public string Country { get; set; }                // Land
         public string City { get; set; }                   // Stad
@@ -21,5 +25,30 @@ namespace Travel_Journal
         // Hjälpegenskaper
         public bool IsUpcoming => StartDate > DateTime.Now;
         public bool IsCompleted => EndDate < DateTime.Now;
+
+        //  Tom konstruktor – behövs för:
+        //  JSON-serialisering
+        //  object initializer: new Trip { ... }
+        public Trip()
+        {
+        }
+        public  Trip(string country, string city, DateTime startDate, DateTime endDate, decimal budget, int numberOfPassengers, int score, string review)
+        {
+            Country = country;
+            City = city;
+            StartDate = startDate;
+            EndDate = endDate;
+            PlannedBudget = budget;
+            NumberOfPassengers = numberOfPassengers;
+            Score = score;
+            Review = review;
+        }
+
+      
     }
 }
+
+
+
+
+
