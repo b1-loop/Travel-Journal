@@ -45,6 +45,7 @@ namespace Travel_Journal
             {
                 // Om något går fel, visa felmeddelande
                 UI.Error($"Failed to save trips: {ex.Message}");
+                Logg.Log($"ERROR saving trips for ´{username}´:{ex.Message}");// Logg som loggar fel vis sparning av resor
             }
         }
 
@@ -53,15 +54,19 @@ namespace Travel_Journal
         {
             while (true)
             {
+                string input = AnsiConsole.Ask<string>(message);
                 try
                 {
-                    // Spectre.Console hanterar input snyggt med färger och validering
-                    return AnsiConsole.Ask<decimal>(message);
+                    return decimal.Parse(input);
+                   
                 }
-                catch
+                catch(Exception ex)
                 {
+
                     // Om användaren skriver något ogiltigt (t.ex. bokstäver) visas fel
-                    UI.Error("Invalid number. Try again.");
+                    Logg.Log($"⚠️ {input} {ex}");
+                    
+                    UI.Error("⚠️ not a number");
                 }
             }
         }
@@ -90,9 +95,10 @@ namespace Travel_Journal
             UI.Transition("Add Upcoming Trip ✈️");
 
             // Frågor till användaren
-            string country = AnsiConsole.Ask<string>("Which [bold]country[/] are you visiting?");
+            var country = UI.AskWithBack("Which [bold]country[/] are you visiting");
+            if (country == null)
+                return; // eller gå till föregående meny
             string city = AnsiConsole.Ask<string>("Which [bold]city[/]?");
-            string currency = AnsiConsole.Ask<string>("What [bold]currency[/]? (e.g. SEK, USD, EUR)");
             decimal budget = AskDecimal("What is your planned [bold]budget[/]?");
 
             // Kolla så att datumen är logiska (start före slut)
@@ -115,12 +121,10 @@ namespace Travel_Journal
             {
                 Country = country,
                 City = city,
-                Currency = currency,
                 PlannedBudget = budget,
                 StartDate = startDate,
                 EndDate = endDate,
                 NumberOfPassengers = passengers,
-                TimeZone = "Europe/Stockholm"
             };
 
             // Lägg till i listan och spara till fil
@@ -130,7 +134,7 @@ namespace Travel_Journal
             // Bekräftelse till användaren
             var panel = new Panel(
                 $"[green]✅ Trip to [bold]{city}, {country}[/] added successfully![/]\n" +
-                $"[grey]Budget:[/] {budget} {currency}\n" +
+                $"[grey]Budget:[/] {budget}\n" +
                 $"[grey]Dates:[/] {startDate:yyyy-MM-dd} → {endDate:yyyy-MM-dd}")
             {
                 Border = BoxBorder.Rounded,
@@ -147,9 +151,10 @@ namespace Travel_Journal
             UI.Transition("Add Previous Trip 🧳");
 
             // Fråga användaren om detaljer från resan
-            string country = AnsiConsole.Ask<string>("Which [bold]country[/] did you visit?");
+            var country = UI.AskWithBack("Which [bold]country[/] did you visit");
+            if (country == null)
+                return; // eller gå till föregående meny
             string city = AnsiConsole.Ask<string>("Which [bold]city[/]?");
-            string currency = AnsiConsole.Ask<string>("What [bold]currency[/]? (e.g. SEK, USD, EUR)");
             decimal budget = AskDecimal("What was your planned [bold]budget[/]?");
             decimal cost = AskDecimal("What was the total [bold]cost[/]?");
 
@@ -175,7 +180,6 @@ namespace Travel_Journal
             {
                 Country = country,
                 City = city,
-                Currency = currency,
                 Cost = cost,
                 PlannedBudget = budget,
                 StartDate = startDate,
@@ -183,7 +187,6 @@ namespace Travel_Journal
                 NumberOfPassengers = passengers,
                 Score = score,
                 Review = review,
-                TimeZone = "Europe/Stockholm"
             };
 
             // Lägg till resan i listan och spara
@@ -193,8 +196,8 @@ namespace Travel_Journal
             // Visa bekräftelse för användaren
             var panel = new Panel(
                 $"[green]✅ Trip to [bold]{city}, {country}[/] added successfully![/]\n" +
-                $"[grey]Budget:[/] {budget} {currency}\n" +
-                $"[grey]Cost:[/] {cost} {currency}\n" +
+                $"[grey]Budget:[/] {budget}\n" +
+                $"[grey]Cost:[/] {cost}\n" +
                 $"[grey]Rating:[/] {score}/5\n" +
                 $"[grey]Dates:[/] {startDate:yyyy-MM-dd} → {endDate:yyyy-MM-dd}")
             {
@@ -226,12 +229,10 @@ namespace Travel_Journal
                 {
                     case "➕ Add Upcoming Trip":
                         AddUpcomingTrip();
-                        UserSession.Pause();
                         break;
 
                     case "🕰 Add Previous Trip":
                         AddPreviousTrip();
-                        UserSession.Pause();
                         break;
 
                     case "↩ Back":
@@ -239,7 +240,7 @@ namespace Travel_Journal
                 }
             }
         }
-        
+
         // === Visar alla resor i tabellform ===
         public void ShowAllTrips()
         {
@@ -247,81 +248,89 @@ namespace Travel_Journal
             // Rubrik/avdelare
             UI.Transition($"All Trips for {username} 🌍");
 
-            // Om användaren inte har några resor än
-            if (trips.Count == 0)
+            if (!trips.Any())
             {
                 UI.Warn("No trips found for this account.");
                 return;
             }
 
-            // Skapar en snygg tabell med Spectre.Console
-            var table = new Table()
-                .Centered()
-                .Border(TableBorder.Rounded)
-                .BorderColor(Color.Grey50);
+            // --- 1. Skapa kategorier ---
+            var categories = new List<(string Title, Color Color, List<Trip> List)>
+    {
+        ("Ongoing Trips",   Color.Yellow, trips.Where(t => !t.IsUpcoming && !t.IsCompleted).OrderBy(t => t.StartDate).ToList()),
+        ("Upcoming Trips",  Color.Green,  trips.Where(t => t.IsUpcoming).OrderBy(t => t.StartDate).ToList()),
+        ("Completed Trips", Color.Grey,   trips.Where(t => t.IsCompleted).OrderBy(t => t.StartDate).ToList())
+    };
 
-            // Kolumnrubriker
-            table.AddColumn("[bold cyan]Country[/]");
-            table.AddColumn("[bold cyan]City[/]");
-            table.AddColumn("[bold cyan]Dates[/]");
-            table.AddColumn("[bold cyan]Budget[/]");
-            table.AddColumn("[bold cyan]Cost[/]");
-            table.AddColumn("[bold cyan]Status[/]");
-            table.AddColumn("[bold cyan]Rating[/]");
-            table.AddColumn("[bold cyan]Review[/]");
-            table.AddColumn("[bold cyan]Pax[/]");
-
-            // Fyll tabellen med data
-            foreach (var trip in trips.OrderBy(t => t.StartDate))
+            // --- 2. Loopa och visa varje kategori ---
+            foreach (var (title, color, tripList) in categories)
             {
-                string dateRange = $"{trip.StartDate:yyyy-MM-dd} → {trip.EndDate:yyyy-MM-dd}";
-                string budget = $"{trip.PlannedBudget} {trip.Currency}";
-                string cost = trip.Cost > 0 ? $"{trip.Cost} {trip.Currency}" : "[grey]—[/]";
-                string rating = trip.Score > 0 ? $"{trip.Score}/5" : "[grey]—[/]";
-                string review = string.IsNullOrWhiteSpace(trip.Review) ? "[grey]No review[/]" : trip.Review;
-                string passengers = $"{trip.NumberOfPassengers}";
+                AnsiConsole.WriteLine();
 
-                // Bestäm färg beroende på status
-                string statusText;
-                Color color;
+                var rule = new Rule($"[bold {color}]{title}[/]")
+                {
+                    Justification = Justify.Center
+                };
+                AnsiConsole.Write(rule);
 
-                if (trip.IsUpcoming)
+                if (!tripList.Any())
                 {
-                    statusText = "Upcoming";
-                    color = Color.Green;
-                }
-                else if (trip.IsCompleted)
-                {
-                    statusText = "Completed";
-                    color = Color.Grey;
-                }
-                else
-                {
-                    statusText = "Ongoing";
-                    color = Color.Yellow;
+                    AnsiConsole.MarkupLine("[grey]No trips in this category.[/]");
+                    continue;
                 }
 
-                // Lägg till rad i tabellen
-                table.AddRow(
-                    new Markup($"[{color}]{trip.Country}[/]"),
-                    new Markup($"[{color}]{trip.City}[/]"),
-                    new Markup($"[{color}]{dateRange}[/]"),
-                    new Markup($"[{color}]{budget}[/]"),
-                    new Markup($"[{color}]{cost}[/]"),
-                    new Markup($"[{color}]{statusText}[/]"),
-                    new Markup($"[{color}]{rating}[/]"),
-                    new Markup($"[{color}]{review}[/]"),
-                    new Markup($"[{color}]{passengers}[/]")
-                );
+                var table = new Table()
+                    .Centered()
+                    .Border(TableBorder.Rounded)
+                    .BorderColor(Color.Grey50);
+
+                // Kolumner
+                table.AddColumn("[bold cyan]Country[/]");
+                table.AddColumn("[bold cyan]City[/]");
+                table.AddColumn("[bold cyan]Dates[/]");
+                table.AddColumn("[bold cyan]Budget[/]");
+                table.AddColumn("[bold cyan]Cost[/]");
+                table.AddColumn("[bold cyan]Status[/]");
+                table.AddColumn("[bold cyan]Rating[/]");
+                table.AddColumn("[bold cyan]Review[/]");
+                table.AddColumn("[bold cyan]Pax[/]");
+
+                // Fyll tabell
+                foreach (var trip in tripList)
+                {
+                    string dateRange = $"{trip.StartDate:yyyy-MM-dd} → {trip.EndDate:yyyy-MM-dd}";
+                    string budget = $"{trip.PlannedBudget}";
+                    string cost = trip.Cost > 0 ? $"{trip.Cost}" : "[grey]—[/]";
+                    string rating = trip.Score > 0 ? $"{trip.Score}/5" : "[grey]—[/]";
+                    string review = string.IsNullOrWhiteSpace(trip.Review) ? "[grey]No review[/]" : trip.Review;
+                    string passengers = $"{trip.NumberOfPassengers}";
+
+                    string statusText = trip.IsUpcoming ? "Upcoming" :
+                                        trip.IsCompleted ? "Completed" : "Ongoing";
+
+                    table.AddRow(
+                        new Markup($"[{color}]{trip.Country}[/]"),
+                        new Markup($"[{color}]{trip.City}[/]"),
+                        new Markup($"[{color}]{dateRange}[/]"),
+                        new Markup($"[{color}]{budget}[/]"),
+                        new Markup($"[{color}]{cost}[/]"),
+                        new Markup($"[{color}]{statusText}[/]"),
+                        new Markup($"[{color}]{rating}[/]"),
+                        new Markup($"[{color}]{review}[/]"),
+                        new Markup($"[{color}]{passengers}[/]")
+                    );
+                }
+
+                AnsiConsole.Write(table);
             }
 
-            // Skriv ut tabellen i terminalen
-            AnsiConsole.Write(table);
-
-            // Skriv ut total antal resor som avslutning
-            AnsiConsole.Write(new Rule($"[grey]Total trips: {trips.Count}[/]"));
+            // ---- Footer ----
+            var footer = new Rule($"[grey]Total trips: {trips.Count}[/]")
+            {
+                Justification = Justify.Center
+            };
+            AnsiConsole.Write(footer);
         }
-
         public List<Trip> GetTrips() //Hjälpmetod för att hämta resor.
         {
             return trips;
@@ -527,7 +536,7 @@ namespace Travel_Journal
                     new SelectionPrompt<Trip>()
                         .Title("[bold]Select a trip to update its budget:[/]")
                         .HighlightStyle(new Style(Color.DeepSkyBlue1))
-                        .UseConverter(t => $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd}) | Budget: {t.PlannedBudget} {t.Currency}")
+                        .UseConverter(t => $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd}) | Budget: {t.PlannedBudget}")
                         .AddChoices(updatedTrips)
                 );
 
@@ -569,7 +578,7 @@ namespace Travel_Journal
                     new SelectionPrompt<Trip>()
                         .Title("[bold]Select a trip to update its cost:[/]")
                         .HighlightStyle(new Style(Color.DeepSkyBlue1))
-                        .UseConverter(t => $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd}) | Cost: {t.Cost} {t.Currency}")
+                        .UseConverter(t => $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd}) | Cost: {t.Cost}")
                         .AddChoices(updatedTrips)
                 );
 

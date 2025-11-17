@@ -69,8 +69,6 @@ namespace Travel_Journal
                 {
                     
                     _tripService.ShowManageTripsMenu();
-                    Pause();
-                    
                 }
               
                 // === Menyval: visa alla resor ===
@@ -91,7 +89,6 @@ namespace Travel_Journal
                 {
                     var statsService = new Statistics(_tripService);
                     statsService.StatsMenu();
-                    Pause();
                 }
                 // === Menyval: uppdatera resor ===
                 else if (sub == "🔄 Edit Trips")
@@ -125,12 +122,20 @@ namespace Travel_Journal
                     continue;
                 }
 
+                // === 🔧 Menyval: Support & Hjälp ===
                 else if (sub == "🔧 Support & Help")
                 {
-                    var _supportService = new SupportService();
-                    _supportService.ShowSupportMenu();
-                    Pause();
+                    // Skapar en ny instans av SupportService
+                    var support = new SupportService();
+
+                    // Visar supportmenyn och skickar med aktuell användare (_account)
+                    bool exit = support.ShowSupportMenu(_account);
+
+                    // Om användaren raderade sitt konto (ShowSupportMenu returnerar true)
+                    if (exit)
+                        return; // Avsluta hela UserSession.Start() → användaren loggas ut och återgår till huvudmenyn
                 }
+
                 // === Menyval: logga ut ===
                 else if (sub == "🚪 Log out")
                 {
@@ -147,17 +152,17 @@ namespace Travel_Journal
             // Skapa en tabell med Spectre.Console
             var t = new Table()
                 .Border(TableBorder.Rounded)
-                .BorderStyle(new Style(Color.Grey50));
+                .BorderStyle(new Style(Color.DarkViolet));
 
             // Kolumner
-            t.AddColumn("Field");
-            t.AddColumn("Value");
+            t.AddColumn("Attribute");
+            t.AddColumn("Details");
 
             // Lägg till data från kontot
-            t.AddRow("Username", _account.UserName);
-            t.AddRow("Created", _account.CreatedAt == default ? "—" : _account.CreatedAt.ToString("yyyy-MM-dd HH:mm"));
-            t.AddRow("Recovery Code", _account.RecoveryCode);
-            t.AddRow("Savings", $"{_account.Savings} kr");
+            t.AddRow("Username:", _account.UserName);
+            t.AddRow("Created:", _account.CreatedAt == default ? "—" : _account.CreatedAt.ToString("yyyy-MM-dd HH:mm"));
+            t.AddRow("Recovery Code:", _account.RecoveryCode);
+            t.AddRow("Savings:", $"{_account.Savings} kr");
 
             // Skriv ut tabellen i terminalen
             AnsiConsole.Write(t);
@@ -169,6 +174,7 @@ namespace Travel_Journal
         {
             AnsiConsole.MarkupLine("\n[grey]Press [bold]ENTER[/] to continue...[/]");
             Console.ReadLine();
+            AnsiConsole.Clear();
         }
         
     }
