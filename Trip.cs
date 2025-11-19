@@ -5,7 +5,7 @@ namespace Travel_Journal
 {
     public class Trip
     {
-        public Guid Id { get; set; } = Guid.NewGuid();     // Unikt ID för varje resa
+       
         public string Country { get; set; }                // Land
         public string City { get; set; }                   // Stad
         public decimal Cost { get; set; }                  // Faktisk kostnad
@@ -16,7 +16,7 @@ namespace Travel_Journal
         public string Review { get; set; }                 // Kommentar eller minne
         public decimal PlannedBudget { get; set; }         // Planerad budget
 
-        public decimal RemainingBudget => PlannedBudget - Cost; // Beräknad egenskap för återstående budget
+       
 
         // Hjälpegenskaper
         public bool IsUpcoming => StartDate > DateTime.Now;
