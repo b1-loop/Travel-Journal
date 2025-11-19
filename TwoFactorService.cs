@@ -27,7 +27,7 @@ namespace Travel_Journal.Security
             return Convert.ToHexString(bytes);
         }
 
-        public async Task<bool> SendEmailCodeAsync(Account acc, string purpose = "Din verifieringskod")
+        public async Task<bool> SendEmailCodeAsync(Account acc, string purpose = "Your verificationcode")
         {
             if (string.IsNullOrWhiteSpace(acc.Email))
             {
@@ -40,7 +40,7 @@ namespace Travel_Journal.Security
             acc.PendingTwoFactorExpiresUtc = DateTime.UtcNow.AddMinutes(10);
 
             string subject = purpose;
-            string body = $"Hej {acc.UserName}!\n\nDin kod är: {code}\nGiltig i 10 minuter.\n\n/Travel Journal";
+            string body = $"Hi {acc.UserName}!\n\nYour code is: {code}\nValid for 10 minutes.\n\n/Team Travel Journal";
 
             await _emailSender.SendAsync(acc.Email, subject, body);
             return true;

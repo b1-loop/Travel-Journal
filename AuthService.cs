@@ -60,7 +60,7 @@ namespace Travel_Journal
                 try
                 {
                     // blockera sync i status-lambdan (ingen await här)
-                    sent = _twoFactor.SendEmailCodeAsync(acc, "Verifiera din e-post")
+                    sent = _twoFactor.SendEmailCodeAsync(acc, "Verify your email")
                                      .GetAwaiter().GetResult();
                 }
                 catch (Exception ex)
@@ -164,7 +164,7 @@ namespace Travel_Journal
                 {
                     try
                     {
-                        sent = _twoFactor.SendEmailCodeAsync(acc, "Inloggningskod")
+                        sent = _twoFactor.SendEmailCodeAsync(acc, "Login-code")
                                          .GetAwaiter().GetResult();
                     }
                     catch (Exception ex)
@@ -206,7 +206,7 @@ namespace Travel_Journal
         {
             if (!string.Equals(newPassword, confirmPassword, StringComparison.Ordinal))
             {
-                UI.Error("Passwords do not match.");
+                UI.Error("Passwords does not match.");
                 return;
             }
 

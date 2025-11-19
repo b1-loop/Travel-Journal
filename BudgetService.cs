@@ -98,7 +98,7 @@ namespace Travel_Journal
             var trips = _tripService.GetTrips(); // Hämtar alla resor
             if (trips.Count == 0)
             {
-                UI.Warn("No trips found yet.");
+                UI.Warn("No trips found.");
                 return;
             }
 
