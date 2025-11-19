@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text.Json;
 using Spectre.Console;
 
 namespace Travel_Journal
@@ -11,111 +8,170 @@ namespace Travel_Journal
     public class TripService
     {
         // === Fält ===
-        // Denna lista håller alla resor som laddas eller läggs till under programmets gång.
+        // Lista med alla resor för användaren
         private List<Trip> trips = new();
 
-        // Användarnamnet som används för att identifiera rätt fil
+        // Användarens namn (för filidentifiering)
         private readonly string username;
 
-        // DataStore ansvarar för JSON-hantering (ersätter filePath + manuella metoder)
+        // Hanterar laddning och sparning av trips till JSON
         private readonly DataStore<Trip> store;
 
         // === Konstruktor ===
         public TripService(string username)
         {
-            // Spara användarnamnet så vi vet vem resorna tillhör
             this.username = username;
 
-            // Skapa ett DataStore-objekt som automatiskt sparar i "data/{username}_trips.json"
+            // DataStore använder automatiskt ./data
             store = new DataStore<Trip>($"{username}_trips.json");
 
-            // Läs in befintliga resor via DataStore (om filen finns)
+            // Ladda resor om filen finns
             trips = store.Load();
         }
 
-        // === Sparar alla resor till JSON-fil ===
+        // === Spara alla resor till JSON-fil ===
         private void SaveTrips()
         {
             try
             {
-                // Använd generiska DataStore istället för manuell serialisering
                 store.Save(trips);
             }
             catch (Exception ex)
             {
-                // Om något går fel, visa felmeddelande
                 UI.Error($"Failed to save trips: {ex.Message}");
-                Logg.Log($"ERROR saving trips for ´{username}´:{ex.Message}");// Logg som loggar fel vis sparning av resor
+                Logg.Log($"ERROR saving trips for '{username}': {ex.Message}");
             }
         }
 
-        // === Hjälpmetod: ber användaren om ett decimaltal (ex. budget) ===
-        private decimal AskDecimal(string message)
-        {
-            while (true)
-            {
-                string input = AnsiConsole.Ask<string>(message);
-                try
-                {
-                    return decimal.Parse(input);
-                   
-                }
-                catch(Exception ex)
-                {
 
-                    // Om användaren skriver något ogiltigt (t.ex. bokstäver) visas fel
-                    Logg.Log($"⚠️ {input} {ex}");
-                    
-                    UI.Error("⚠️ not a number");
-                }
-            }
-        }
-
-        // === Hjälpmetod: ber användaren om ett heltal (ex. antal personer) ===
-        private int AskInt(string message)
-        {
-            while (true)
-            {
-                try
-                {
-                    return AnsiConsole.Ask<int>(message);
-                }
-                catch
-                {
-                    UI.Error("Please enter a valid number.");
-                }
-            }
-        }
-
-        // === Lägger till en framtida resa (planerad resa) ===
+        // ============================================================
+        // === Add Upcoming Trip (Framtida resa) =======================
+        // ============================================================
         public void AddUpcomingTrip()
         {
-            // Snygg övergångsrubrik
-            UI.Transition("Add Upcoming Trip ✈️");
+            // Håller koll på vilket steg i formuläret vi är
+            int step = 0;
 
-            // Frågor till användaren
-            var country = UI.AskWithBack("Which [bold]country[/] are you visiting");
-            if (country == null)
-                return; // eller gå till föregående meny
-            string city = AnsiConsole.Ask<string>("Which [bold]city[/]?");
-            decimal budget = AskDecimal("What is your planned [bold]budget[/]?");
+            // Formulärfält
+            string country = "";
+            string city = "";
+            decimal budget = 0;
+            DateTime startDate = default;
+            DateTime endDate = default;
+            int passengers = 0;
 
-            // Kolla så att datumen är logiska (start före slut)
-            DateTime startDate, endDate;
-            while (true)
+            // Loopa genom alla steg
+            while (step < 5)
             {
-                startDate = AnsiConsole.Ask<DateTime>("Departure date (YYYY-MM-DD):");
-                endDate = AnsiConsole.Ask<DateTime>("Return date (YYYY-MM-DD):");
+                // === Steg 0 – Land ===
+                if (step == 0)
+                {
+                    UI.ShowFormHeader("Add Upcoming Trip ✈️",
+                        country, city, budget, startDate, endDate, passengers);
 
-                if (startDate > endDate)
-                    UI.Warn("❌ Invalid date! Start date must be before end date.");
-                else
-                    break;
+                    var c = UI.AskWithBack("Which country are you visiting");
+                    if (c == null) return;
+
+                    country = c;
+                    step++;
+                }
+
+                // === Steg 1 – Stad ===
+                else if (step == 1)
+                {
+                    UI.ShowFormHeader("Add Upcoming Trip ✈️",
+                        country, city, budget, startDate, endDate, passengers);
+
+                    var c = UI.AskStep("Which city?");
+                    if (c == null)
+                    {
+                        step--;
+                        UI.BackOneStep();
+                        continue;
+                    }
+
+                    city = c;
+                    step++;
+                }
+
+                // === Steg 2 – Budget ===
+                else if (step == 2)
+                {
+                    UI.ShowFormHeader("Add Upcoming Trip ✈️",
+                        country, city, budget, startDate, endDate, passengers);
+
+                    var b = UI.AskStepDecimal("Planned budget?");
+                    if (b == null)
+                    {
+                        step--;
+                        UI.BackOneStep();
+                        continue;
+                    }
+
+                    budget = b.Value;
+                    step++;
+                }
+
+                // === Steg 3 – Datum (avresa + hemresa) ===
+                else if (step == 3)
+                {
+                    UI.ShowFormHeader("Add Upcoming Trip ✈️",
+                        country, city, budget, startDate, endDate, passengers);
+
+                    // Avresedatum (visar back-text)
+                    var s = UI.AskStepDate("Departure date (YYYY-MM-DD)", true);
+                    if (s == null)
+                    {
+                        step--;
+                        UI.BackOneStep();
+                        continue;
+                    }
+
+                    // Visa header igen innan returdatum
+                    UI.ShowFormHeader("Add Upcoming Trip ✈️",
+                        country, city, budget, startDate, endDate, passengers);
+
+                    // Hemresedatum (ingen back-text)
+                    var e = UI.AskStepDate("Return date (YYYY-MM-DD)", false);
+                    if (e == null)
+                    {
+                        step--;
+                        UI.BackOneStep();
+                        continue;
+                    }
+
+                    // Validering
+                    if (s > e)
+                    {
+                        UI.Warn("Start date must be before return date.");
+                        continue;
+                    }
+
+                    startDate = s.Value;
+                    endDate = e.Value;
+                    step++;
+                }
+
+                // === Steg 4 – Passagerare ===
+                else if (step == 4)
+                {
+                    UI.ShowFormHeader("Add Upcoming Trip ✈️",
+                        country, city, budget, startDate, endDate, passengers);
+
+                    var p = UI.AskStepDecimal("How many passengers?");
+                    if (p == null)
+                    {
+                        step--;
+                        UI.BackOneStep();
+                        continue;
+                    }
+
+                    passengers = (int)p.Value;
+                    step++;
+                }
             }
 
-            int passengers = AskInt("How many [bold]people[/] are joining?");
-
-            // Skapa ett nytt Trip-objekt baserat på användarens input
+            // === Skapa resa ===
             var newTrip = new Trip
             {
                 Country = country,
@@ -123,87 +179,231 @@ namespace Travel_Journal
                 PlannedBudget = budget,
                 StartDate = startDate,
                 EndDate = endDate,
-                NumberOfPassengers = passengers,
+                NumberOfPassengers = passengers
             };
 
-            // Lägg till i listan och spara till fil
             trips.Add(newTrip);
             SaveTrips();
 
-            // Bekräftelse till användaren
-            var panel = new Panel(
-                $"[green]✅ Trip to [bold]{city}, {country}[/] added successfully![/]\n" +
-                $"[grey]Budget:[/] {budget}\n" +
-                $"[grey]Dates:[/] {startDate:yyyy-MM-dd} → {endDate:yyyy-MM-dd}")
-            {
-                Border = BoxBorder.Rounded,
-                Header = new PanelHeader("Trip Saved", Justify.Center),
-                BorderStyle = new Style(Color.Green)
-            };
-            AnsiConsole.Write(panel);
+            UI.Success($"Trip to {city}, {country} added successfully!");
+            UserSession.Pause();
         }
 
-        // === Lägger till en tidigare resa (redan genomförd) ===
+
+        // ============================================================
+        // === Add Previous Trip (Genomförd resa) ======================
+        // ============================================================
         public void AddPreviousTrip()
         {
-            UI.Transition("Add Previous Trip 🧳");
+            int step = 0;
 
-            // Fråga användaren om detaljer från resan
-            var country = UI.AskWithBack("Which [bold]country[/] did you visit");
-            if (country == null)
-                return; // eller gå till föregående meny
-            string city = AnsiConsole.Ask<string>("Which [bold]city[/]?");
-            decimal budget = AskDecimal("What was your planned [bold]budget[/]?");
-            decimal cost = AskDecimal("What was the total [bold]cost[/]?");
+            // Formulärfält
+            string country = "";
+            string city = "";
+            decimal budget = 0;
+            decimal cost = 0;
+            DateTime startDate = default;
+            DateTime endDate = default;
+            int passengers = 0;
+            int score = 0;
+            string review = "";
 
-            // Kontrollera giltiga datum
-            DateTime startDate, endDate;
-            while (true)
+            // 8 steg totalt
+            while (step < 8)
             {
-                startDate = AnsiConsole.Ask<DateTime>("Departure date (YYYY-MM-DD):");
-                endDate = AnsiConsole.Ask<DateTime>("Return date (YYYY-MM-DD):");
+                // === Steg 0 – Land ===
+                if (step == 0)
+                {
+                    UI.ShowFormHeader("Add Previous Trip 🧳",
+                        country, city, budget, startDate, endDate, passengers,
+                        cost, score, review);
 
-                if (startDate > endDate)
-                    UI.Warn("❌ Invalid date! Start date must be before end date.");
-                else
-                    break;
+                    var c = UI.AskWithBack("Which country did you visit");
+                    if (c == null) return;
+
+                    country = c;
+                    step++;
+                }
+
+                // === Steg 1 – Stad ===
+                else if (step == 1)
+                {
+                    UI.ShowFormHeader("Add Previous Trip 🧳",
+                        country, city, budget, startDate, endDate, passengers,
+                        cost, score, review);
+
+                    var c = UI.AskStep("Which city?");
+                    if (c == null)
+                    {
+                        step--;
+                        UI.BackOneStep();
+                        continue;
+                    }
+
+                    city = c;
+                    step++;
+                }
+
+                // === Steg 2 – Planerad budget ===
+                else if (step == 2)
+                {
+                    UI.ShowFormHeader("Add Previous Trip 🧳",
+                        country, city, budget, startDate, endDate, passengers,
+                        cost, score, review);
+
+                    var b = UI.AskStepDecimal("Planned budget?");
+                    if (b == null)
+                    {
+                        step--;
+                        UI.BackOneStep();
+                        continue;
+                    }
+
+                    budget = b.Value;
+                    step++;
+                }
+
+                // === Steg 3 – Total kostnad ===
+                else if (step == 3)
+                {
+                    UI.ShowFormHeader("Add Previous Trip 🧳",
+                        country, city, budget, startDate, endDate, passengers,
+                        cost, score, review);
+
+                    var cst = UI.AskStepDecimal("Total cost?");
+                    if (cst == null)
+                    {
+                        step--;
+                        UI.BackOneStep();
+                        continue;
+                    }
+
+                    cost = cst.Value;
+                    step++;
+                }
+
+                // === Steg 4 – Datum ===
+                else if (step == 4)
+                {
+                    UI.ShowFormHeader("Add Previous Trip 🧳",
+                        country, city, budget, startDate, endDate, passengers,
+                        cost, score, review);
+
+                    var s = UI.AskStepDate("Departure date (YYYY-MM-DD)", true);
+                    if (s == null)
+                    {
+                        step--;
+                        UI.BackOneStep();
+                        continue;
+                    }
+
+                    UI.ShowFormHeader("Add Previous Trip 🧳",
+                        country, city, budget, startDate, endDate, passengers,
+                        cost, score, review);
+
+                    var e = UI.AskStepDate("Return date (YYYY-MM-DD)", false);
+                    if (e == null)
+                    {
+                        step--;
+                        UI.BackOneStep();
+                        continue;
+                    }
+
+                    if (s > e)
+                    {
+                        UI.Warn("Start date must be before return date.");
+                        continue;
+                    }
+
+                    startDate = s.Value;
+                    endDate = e.Value;
+                    step++;
+                }
+
+                // === Steg 5 – Passagerare ===
+                else if (step == 5)
+                {
+                    UI.ShowFormHeader("Add Previous Trip 🧳",
+                        country, city, budget, startDate, endDate, passengers,
+                        cost, score, review);
+
+                    var p = UI.AskStepDecimal("How many passengers?");
+                    if (p == null)
+                    {
+                        step--;
+                        UI.BackOneStep();
+                        continue;
+                    }
+
+                    passengers = (int)p.Value;
+                    step++;
+                }
+
+                // === Steg 6 – Rating ===
+                else if (step == 6)
+                {
+                    UI.ShowFormHeader("Add Previous Trip 🧳",
+                        country, city, budget, startDate, endDate, passengers,
+                        cost, score, review);
+
+                    var r = UI.AskStepDecimal("Trip rating (1–5)");
+                    if (r == null)
+                    {
+                        step--;
+                        UI.BackOneStep();
+                        continue;
+                    }
+
+                    int rating = (int)r.Value;
+                    if (rating < 1 || rating > 5)
+                    {
+                        UI.Warn("Rating must be between 1–5.");
+                        continue;
+                    }
+
+                    score = rating;
+                    step++;
+                }
+
+                // === Steg 7 – Review ===
+                else if (step == 7)
+                {
+                    UI.ShowFormHeader("Add Previous Trip 🧳",
+                        country, city, budget, startDate, endDate, passengers,
+                        cost, score, review);
+
+                    var rv = UI.AskStep("Write a short review");
+                    if (rv == null)
+                    {
+                        step--;
+                        UI.BackOneStep();
+                        continue;
+                    }
+
+                    review = rv;
+                    step++;
+                }
             }
 
-            int passengers = AskInt("How many [bold]people[/] were on the trip?");
-            int score = AskInt("How would you rate this trip (1–5)?");
-            string review = AnsiConsole.Ask<string>("Write a short [bold]review[/]:");
-
-            // Skapa ett nytt Trip-objekt med data
+            // === Skapa resa ===
             var newTrip = new Trip
             {
                 Country = country,
                 City = city,
-                Cost = cost,
                 PlannedBudget = budget,
+                Cost = cost,
                 StartDate = startDate,
                 EndDate = endDate,
                 NumberOfPassengers = passengers,
                 Score = score,
-                Review = review,
+                Review = review
             };
 
-            // Lägg till resan i listan och spara
             trips.Add(newTrip);
             SaveTrips();
 
-            // Visa bekräftelse för användaren
-            var panel = new Panel(
-                $"[green]✅ Trip to [bold]{city}, {country}[/] added successfully![/]\n" +
-                $"[grey]Budget:[/] {budget}\n" +
-                $"[grey]Cost:[/] {cost}\n" +
-                $"[grey]Rating:[/] {score}/5\n" +
-                $"[grey]Dates:[/] {startDate:yyyy-MM-dd} → {endDate:yyyy-MM-dd}")
-            {
-                Border = BoxBorder.Rounded,
-                Header = new PanelHeader("Trip Saved", Justify.Center),
-                BorderStyle = new Style(Color.Green)
-            };
-            AnsiConsole.Write(panel);
+            UI.Success($"Previous trip to {city}, {country} saved successfully!");
+            UserSession.Pause();
         }
 
         public void ShowManageTripsMenu() 
@@ -396,7 +596,7 @@ namespace Travel_Journal
             {
                 if (updatedTrips is null || updatedTrips.Count == 0)
                 {
-                    AnsiConsole.MarkupLine("[yellow]Inga resor att uppdatera.[/]");
+                    AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
                     UserSession.Pause();
                     return;
                 }
@@ -439,7 +639,7 @@ namespace Travel_Journal
             {
                 if (updatedTrips is null || updatedTrips.Count == 0)
                 {
-                    AnsiConsole.MarkupLine("[yellow]Inga resor att uppdatera.[/]");
+                    AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
                     UserSession.Pause();
                     return;
                 }
@@ -481,7 +681,7 @@ namespace Travel_Journal
             {
                 if (updatedTrips is null || updatedTrips.Count == 0)
                 {
-                    AnsiConsole.MarkupLine("[yellow]Inga resor att uppdatera.[/]");
+                    AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
                     UserSession.Pause();
                     return;
                 }
@@ -523,7 +723,7 @@ namespace Travel_Journal
             {
                 if (updatedTrips is null || updatedTrips.Count == 0)
                 {
-                    AnsiConsole.MarkupLine("[yellow]Inga resor att uppdatera.[/]");
+                    AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
                     UserSession.Pause();
                     return;
                 }
@@ -565,7 +765,7 @@ namespace Travel_Journal
             {
                 if (updatedTrips is null || updatedTrips.Count == 0)
                 {
-                    AnsiConsole.MarkupLine("[yellow]Inga resor att uppdatera.[/]");
+                    AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
                     UserSession.Pause();
                     return;
                 }
@@ -607,7 +807,7 @@ namespace Travel_Journal
             {
                 if (updatedTrips is null || updatedTrips.Count == 0)
                 {
-                    AnsiConsole.MarkupLine("[yellow]Inga resor att uppdatera.[/]");
+                    AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
                     UserSession.Pause();
                     return;
                 }
@@ -650,7 +850,7 @@ namespace Travel_Journal
                 // Kontrollera att det finns resor att ta bort
                 if (updatedTrips is null || updatedTrips.Count == 0)
                 {
-                    AnsiConsole.MarkupLine("[yellow]Inga resor att ta bort.[/]");
+                    AnsiConsole.MarkupLine("[yellow]No trips to delete.[/]");
                     UserSession.Pause();
                     return;
                 }
