@@ -1,7 +1,9 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using Spectre.Console;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Spectre.Console;
+using System.Security.Principal;
 
 namespace Travel_Journal
 {
@@ -13,6 +15,7 @@ namespace Travel_Journal
 
         // Användarens namn (för filidentifiering)
         private readonly string username;
+        public string UserName => username;
 
         // Hanterar laddning och sparning av trips till JSON
         private readonly DataStore<Trip> store;
@@ -158,7 +161,7 @@ namespace Travel_Journal
                     UI.ShowFormHeader("Add Upcoming Trip ✈️",
                         country, city, budget, startDate, endDate, passengers);
 
-                    var p = UI.AskStepDecimal("How many passengers?");
+                    var p = UI.AskStepInt("How many passengers?");
                     if (p == null)
                     {
                         step--;
@@ -321,6 +324,7 @@ namespace Travel_Journal
                     if (startDate > e)
                     {
                         UI.Warn("Return date must be after departure date.");
+                        Logg.Log($"User '{username}' entered invalid return date in AddPreviousTrip.");
                         continue;
                     }
 
@@ -335,7 +339,7 @@ namespace Travel_Journal
                         country, city, budget, startDate, endDate, passengers,
                         cost, score, review);
 
-                    var p = UI.AskStepDecimal("How many passengers?");
+                    var p = UI.AskStepInt("How many passengers?");
                     if (p == null)
                     {
                         step--;
@@ -367,6 +371,7 @@ namespace Travel_Journal
                     if (rating < 1 || rating > 5)
                     {
                         UI.Warn("Rating must be between 1–5.");
+                        Logg.Log($"User '{username}' entered invalid rating in AddPreviousTrip.");
                         continue;
                     }
 
@@ -457,6 +462,7 @@ namespace Travel_Journal
             if (!trips.Any())
             {
                 UI.Warn("No trips found for this account.");
+                Logg.Log($"No trips found for user '{username}' in ShowAllTrips.");
                 return;
             }
 
@@ -482,6 +488,7 @@ namespace Travel_Journal
                 if (!tripList.Any())
                 {
                     AnsiConsole.MarkupLine("[grey]No trips in this category.[/]");
+                    Logg.Log($"No trips found in category '{title}' for user '{username}'.");
                     continue;
                 }
 
@@ -607,6 +614,7 @@ namespace Travel_Journal
                 if (updatedTrips is null || updatedTrips.Count == 0)
                 {
                     AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
+                    Logg.Log($"No trips available to update rating for user '{username}'.");
                     UserSession.Pause();
                     return;
                 }
@@ -621,9 +629,12 @@ namespace Travel_Journal
 
                 var newScore = AnsiConsole.Prompt(
                     new TextPrompt<int>("Enter the new rating [[1-5]]:")
-                        .Validate(s => s is >= 1 and <= 5
-                            ? ValidationResult.Success()
-                            : ValidationResult.Error("[red]Rating must be between 1 and 5[/]"))
+                        .Validate(s =>
+                {
+                if (s is >= 1 and <= 5)
+                        return ValidationResult.Success();
+                    Logg.Log($"Invalid rating input: '{s}'. Must be between 1 and 5.");
+                        return ValidationResult.Error("[red]Rating must be between 1 and 5[/]");})
                 );
 
                 var confirm = AnsiConsole.Prompt(
@@ -635,6 +646,7 @@ namespace Travel_Journal
                 if (confirm == "❌ No")
                 {
                     AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
+                    Logg.Log($"User '{username}' cancelled rating update for trip to '{selectedTrip.City}, {selectedTrip.Country}'.");
                     UserSession.Pause();
                     return;
                 }
@@ -650,6 +662,7 @@ namespace Travel_Journal
                 if (updatedTrips is null || updatedTrips.Count == 0)
                 {
                     AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
+                    Logg.Log($"No trips available to update departure date for user '{username}'.");
                     UserSession.Pause();
                     return;
                 }
@@ -662,13 +675,21 @@ namespace Travel_Journal
                         .AddChoices(updatedTrips)
                 );
 
-                var newDateOfDepart = AnsiConsole.Prompt(
-                    new TextPrompt<DateTime>("Enter the new date [[YYYY-MM-DD]]:")
-                        .Validate(s => s != null
-                            ? ValidationResult.Success()
-                            : ValidationResult.Error("[red]Date must be in format YYYY-MM-DD[/]"))
-                );
+                var rawDate = AnsiConsole.Prompt(
+                new TextPrompt<string>("Enter the new date [[YYYY-MM-DD]]:")
+                    .Validate(input =>
+                    {
+                        // För att kunna logga OGILTIG input måste vi själv testa den
+                        if (DateTime.TryParse(input, out _))
+                        {
+                            return ValidationResult.Success();
+                        }
+                        Logg.Log($"Invalid date input: '{input}'. Expected format YYYY-MM-DD.");
 
+                        return ValidationResult.Error("[red]Date must be in format YYYY-MM-DD[/]");
+                    })
+);
+                var newDateOfDepart = DateTime.Parse(rawDate);
                 var confirm = AnsiConsole.Prompt(
                     new SelectionPrompt<string>()
                         .Title($"Do you want to update the departure date for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] from {selectedTrip.StartDate:yyyy-MM-dd} to [bold]{newDateOfDepart:yyyy-MM-dd}[/]?")
@@ -678,6 +699,7 @@ namespace Travel_Journal
                 if (confirm == "❌ No")
                 {
                     AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
+                    Logg.Log($"User '{username}' cancelled departure date update for trip to '{selectedTrip.City}, {selectedTrip.Country}'.");
                     UserSession.Pause();
                     return;
                 }
@@ -692,6 +714,7 @@ namespace Travel_Journal
                 if (updatedTrips is null || updatedTrips.Count == 0)
                 {
                     AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
+                    Logg.Log($"No trips available to update return date for user '{username}'.");
                     UserSession.Pause();
                     return;
                 }
@@ -704,28 +727,48 @@ namespace Travel_Journal
                         .AddChoices(updatedTrips)
                 );
 
-                var newReturnDate = AnsiConsole.Prompt(
-                    new TextPrompt<DateTime>("Enter the new return date [[YYYY-MM-DD]]:")
-                        .Validate(s => s != null
-                            ? ValidationResult.Success()
-                            : ValidationResult.Error("[red]Date must be in format YYYY-MM-DD[/]"))
+                var rawDate = AnsiConsole.Prompt(
+                    new TextPrompt<string>("Enter the new return date [[YYYY-MM-DD]]:")
+                        .Validate(input =>
+                        {
+                            // För att kunna logga OGILTIG input måste vi själv testa den
+                            if (DateTime.TryParse(input, out _))
+                            {
+                                return ValidationResult.Success();
+                            }
+
+                            Logg.Log($"Invalid return date input: '{input}'. Expected format YYYY-MM-DD.");
+                            return ValidationResult.Error("[red]Date must be in format YYYY-MM-DD[/]");
+                        })
                 );
+
+                var newReturnDate = DateTime.Parse(rawDate);
 
                 var confirm = AnsiConsole.Prompt(
                     new SelectionPrompt<string>()
-                        .Title($"Do you want to update the return date for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] from {selectedTrip.EndDate:yyyy-MM-dd} to [bold]{newReturnDate:yyyy-MM-dd}[/]?")
+                        .Title(
+                            $"Do you want to update the return date for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] " +
+                            $"from {selectedTrip.EndDate:yyyy-MM-dd} to [bold]{newReturnDate:yyyy-MM-dd}[/]?"
+                        )
                         .AddChoices("✅ Yes", "❌ No")
                 );
 
                 if (confirm == "❌ No")
                 {
                     AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
+                    Logg.Log(
+                        $"User '{username}' cancelled return date update for trip to " +
+                        $"'{selectedTrip.City}, {selectedTrip.Country}'."
+                    );
                     UserSession.Pause();
                     return;
                 }
 
                 selectedTrip.EndDate = newReturnDate;
-                AnsiConsole.MarkupLine($"[green]✅ Return date updated for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]![/]");
+
+                AnsiConsole.MarkupLine(
+                    $"[green]✅ Return date updated for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]![/]"
+                );
                 UserSession.Pause();
             }
 
@@ -734,6 +777,7 @@ namespace Travel_Journal
                 if (updatedTrips is null || updatedTrips.Count == 0)
                 {
                     AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
+                    Logg.Log($"No trips available to update budget for user '{username}'.");
                     UserSession.Pause();
                     return;
                 }
@@ -742,32 +786,65 @@ namespace Travel_Journal
                     new SelectionPrompt<Trip>()
                         .Title("[bold]Select a trip to update its budget:[/]")
                         .HighlightStyle(new Style(Color.DeepSkyBlue1))
-                        .UseConverter(t => $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd}) | Budget: {t.PlannedBudget}")
+                        .UseConverter(t =>
+                            $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd}) | Budget: {t.PlannedBudget}")
                         .AddChoices(updatedTrips)
                 );
 
-                var newBudget = AnsiConsole.Prompt(
-                    new TextPrompt<decimal>("Enter the new budget:")
-                        .Validate(s => s >= 0
-                            ? ValidationResult.Success()
-                            : ValidationResult.Error("[red]Budget must be a positive number[/]"))
+                // Bara logga när något blir fel
+                var rawBudget = AnsiConsole.Prompt(
+                    new TextPrompt<string>("Enter the new budget:")
+                        .Validate(input =>
+                        {
+                            // Försök parsa som decimal
+                            if (!decimal.TryParse(input, out var parsed))
+                            {
+                                // ❌ Logga endast fel
+                                Logg.Log(
+                                    $"Invalid budget input: '{input}'. Expected a numeric value."
+                                );
+                                return ValidationResult.Error("[red]You must enter a number.[/]");
+                            }
+
+                            // Budget måste vara positiv
+                            if (parsed < 0)
+                            {
+                                // ❌ Logga endast fel
+                                Logg.Log(
+                                    $"Invalid budget input: '{input}'. Budget must be a positive number."
+                                );
+                                return ValidationResult.Error("[red]Budget must be a positive number[/]");
+                            }
+
+                            return ValidationResult.Success();
+                        })
                 );
+
+                var newBudget = decimal.Parse(rawBudget);
 
                 var confirm = AnsiConsole.Prompt(
                     new SelectionPrompt<string>()
-                        .Title($"Do you want to update the budget for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] from {selectedTrip.PlannedBudget} to [bold]{newBudget}[/]?")
+                        .Title(
+                            $"Do you want to update the budget for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] " +
+                            $"from {selectedTrip.PlannedBudget} to [bold]{newBudget}[/]?"
+                        )
                         .AddChoices("✅ Yes", "❌ No")
                 );
 
                 if (confirm == "❌ No")
                 {
                     AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
+                    Logg.Log("Budget update cancelled by user.");
                     UserSession.Pause();
                     return;
                 }
 
+                // ✔ Ingen logg — korrekt beteende
                 selectedTrip.PlannedBudget = newBudget;
-                AnsiConsole.MarkupLine($"[green]✅ Budget updated for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]![/]");
+
+                AnsiConsole.MarkupLine(
+                    $"[green]✅ Budget updated for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]![/]"
+                );
                 UserSession.Pause();
             }
 
@@ -776,6 +853,7 @@ namespace Travel_Journal
                 if (updatedTrips is null || updatedTrips.Count == 0)
                 {
                     AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
+                    Logg.Log($"No trips available to update cost for user '{username}'.");
                     UserSession.Pause();
                     return;
                 }
@@ -784,32 +862,65 @@ namespace Travel_Journal
                     new SelectionPrompt<Trip>()
                         .Title("[bold]Select a trip to update its cost:[/]")
                         .HighlightStyle(new Style(Color.DeepSkyBlue1))
-                        .UseConverter(t => $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd}) | Cost: {t.Cost}")
+                        .UseConverter(t =>
+                            $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd}) | Cost: {t.Cost}")
                         .AddChoices(updatedTrips)
                 );
 
-                var newCost = AnsiConsole.Prompt(
-                    new TextPrompt<decimal>("Enter the new cost:")
-                        .Validate(s => s >= 0
-                            ? ValidationResult.Success()
-                            : ValidationResult.Error("[red]Cost must be a positive number[/]"))
+                // Kostnad som text — så vi kan logga ogiltiga värden
+                var rawCost = AnsiConsole.Prompt(
+                    new TextPrompt<string>("Enter the new cost:")
+                        .Validate(input =>
+                        {
+                            // Försök parsa decimal
+                            if (!decimal.TryParse(input, out var parsed))
+                            {
+                                // ❌ Logga felaktig typ
+                                Logg.Log(
+                                    $"Invalid cost input: '{input}'. Expected a numeric value."
+                                );
+                                return ValidationResult.Error("[red]You must enter a number.[/]");
+                            }
+
+                            // Kontrollera logiska regler
+                            if (parsed < 0)
+                            {
+                                // ❌ Logga negativ kostnad
+                                Logg.Log(
+                                    $"Invalid cost input: '{input}'. Cost must be a positive number."
+                                );
+                                return ValidationResult.Error("[red]Cost must be a positive number[/]");
+                            }
+
+                            return ValidationResult.Success();
+                        })
                 );
+
+                var newCost = decimal.Parse(rawCost);
 
                 var confirm = AnsiConsole.Prompt(
                     new SelectionPrompt<string>()
-                        .Title($"Do you want to update the total cost for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] from {selectedTrip.Cost} to [bold]{newCost}[/]?")
+                        .Title(
+                            $"Do you want to update the total cost for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] " +
+                            $"from {selectedTrip.Cost} to [bold]{newCost}[/]?"
+                        )
                         .AddChoices("✅ Yes", "❌ No")
                 );
 
                 if (confirm == "❌ No")
                 {
                     AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
+                    Logg.Log($"User '{username}' cancelled cost update for trip to '{selectedTrip.City}, {selectedTrip.Country}'.");
                     UserSession.Pause();
                     return;
                 }
 
+                // ✔ Giltig uppdatering — ingen logg behövs
                 selectedTrip.Cost = newCost;
-                AnsiConsole.MarkupLine($"[green]✅ Cost updated for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]![/]");
+
+                AnsiConsole.MarkupLine(
+                    $"[green]✅ Cost updated for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]![/]"
+                );
                 UserSession.Pause();
             }
 
@@ -818,6 +929,7 @@ namespace Travel_Journal
                 if (updatedTrips is null || updatedTrips.Count == 0)
                 {
                     AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
+                    Logg.Log($"No trips available to update number of passengers for user '{username}'.");
                     UserSession.Pause();
                     return;
                 }
@@ -846,6 +958,7 @@ namespace Travel_Journal
                 if (confirm == "❌ No")
                 {
                     AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
+                    Logg.Log($"User '{username}' cancelled number of passengers update for trip to '{selectedTrip.City}, {selectedTrip.Country}'.");
                     UserSession.Pause();
                     return;
                 }
@@ -861,6 +974,7 @@ namespace Travel_Journal
                 if (updatedTrips is null || updatedTrips.Count == 0)
                 {
                     AnsiConsole.MarkupLine("[yellow]No trips to delete.[/]");
+                    Logg.Log($"No trips available to delete for user '{username}'.");
                     UserSession.Pause();
                     return;
                 }
@@ -884,6 +998,7 @@ namespace Travel_Journal
                 if (confirm == "❌ No")
                 {
                     AnsiConsole.MarkupLine("[grey]Delete cancelled.[/]");
+                    Logg.Log($"User '{username}' cancelled deletion of trip to '{selectedTrip.City}, {selectedTrip.Country}'.");
                     UserSession.Pause();
                     return;
                 }

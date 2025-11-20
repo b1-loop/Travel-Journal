@@ -95,6 +95,7 @@ namespace Travel_Journal
                     default:
                         // === Avslutar programmet ===
                         UI.Transition("Exiting...");
+                        Logg.Log("Application ended."); //Loggar att appen har avslutats
                         AnsiConsole.MarkupLine("[green]Thank you for using Travel Journal![/]");
 
                         // Kort paus innan konsolen stängs för snygg exit-animation

@@ -57,10 +57,11 @@ namespace Travel_Journal
         // === Sätta in pengar ===
         private void Deposit()
         {
-            decimal amount = AnsiConsole.Ask<decimal>("How much would you like to [green]deposit[/]?");
+            decimal amount = UI.AskDecimal("How much would you like to [green]deposit[/]?");
             if (amount <= 0)
             {
                 UI.Warn("Amount must be greater than zero.");
+                Logg.Log($"User attempted to deposit invalid amount: {amount}");
                 return;
             }
 
@@ -73,16 +74,18 @@ namespace Travel_Journal
         // === Ta ut pengar ===
         private void Withdraw()
         {
-            decimal amount = AnsiConsole.Ask<decimal>("How much would you like to [red]withdraw[/]?");
+            decimal amount = UI.AskDecimal("How much would you like to [red]withdraw[/]?");
             if (amount <= 0)
             {
                 UI.Warn("Amount must be greater than zero.");
+                Logg.Log($"User attempted to withdraw invalid amount: {amount}");
                 return;
             }
 
             if (amount > _account.Savings)
             {
                 UI.Error("You don't have enough balance!");
+                Logg.Log($"Insufficient balance: tried to withdraw {amount} but only {_account.Savings} available.");
                 return;
             }
 
@@ -99,6 +102,7 @@ namespace Travel_Journal
             if (trips.Count == 0)
             {
                 UI.Warn("No trips found.");
+                Logg.Log($"No trips found for user '{_account.UserName}' in ShowTripBudgets.");
                 return;
             }
 

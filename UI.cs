@@ -290,5 +290,61 @@ namespace Travel_Journal
 
             return dt;
         }
+        // Ask step int metod där 0 = back + loggning vid felaktigt heltal
+        public static int? AskStepInt(string prompt)
+        {
+            AnsiConsole.MarkupLine("[grey]← Press [red]0[/] to go back one step[/]");
+            var input = AnsiConsole.Ask<string>($"{prompt}:");
+            if (input.Trim() == "0")
+            {
+                Logg.Log($"User pressed 0 → Step back from int prompt '{prompt}'");
+                return null;
+            }
+            if (!int.TryParse(input, out var val))
+            {
+                Logg.Log($"Invalid integer input '{input}' for '{prompt}'");
+                Error("Invalid number.");
+                return AskStepInt(prompt);
+            }
+            return val;
+        }
+        // === Decimal-prompt med samma felhantering som AskStepDate ===
+        // Läser ett decimalvärde, loggar fel och loopar tills användaren skriver rätt.
+        public static decimal AskDecimal(string prompt)
+        {
+            // Läs in rå text
+            string input = AnsiConsole.Ask<string>($"{prompt}: ");
+
+            // Försök konvertera
+            if (!decimal.TryParse(input, out var val))
+            {
+                // Logga exakt samma format som i datumversionen
+                Logg.Log($"Invalid decimal input '{input}' for '{prompt}'");
+
+                // Samma felmeddelande
+                Error("Invalid number.");
+
+                // Loop via rekursion – exakt som din andra metod
+                return AskDecimal(prompt);
+            }
+
+            return val;
+        }
+        public static int AskInt(string prompt)
+        {
+            // Läs in rå text
+            string input = AnsiConsole.Ask<string>($"{prompt}: ");
+            // Försök konvertera
+            if (!int.TryParse(input, out var val))
+            {
+                // Logga fel
+                Logg.Log($"Invalid integer input '{input}' for '{prompt}'");
+                // Samma felmeddelande
+                Error("Invalid number.");
+                // Loop via rekursion
+                return AskInt(prompt);
+            }
+            return val;
+        }
     }
 }
