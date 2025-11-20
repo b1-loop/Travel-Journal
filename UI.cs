@@ -290,5 +290,35 @@ namespace Travel_Journal
 
             return dt;
         }
+        public static void ShowNotification(string message, NotificationType type)//metod som ansvarar för att visa notiser
+        {
+            Console.WriteLine();//tom rad
+
+            switch (type) //kollar vilken typ av notis det är
+            {
+                case NotificationType.Info: //om det är en info-notis
+                    Console.WriteLine("Info");  //rubrik för info
+                    Console.WriteLine(message);  //skriver ut meddelandet
+                    Console.ForegroundColor = ConsoleColor.Cyan;//färg
+                    break;                       //avslutar denna case
+
+                case NotificationType.Sucess: //om det är en sucess-notis
+                    Console.WriteLine("Sucess");
+                    Console.WriteLine(message);
+                    Console.ForegroundColor = ConsoleColor.Yellow;//färg
+                    break;
+
+                case NotificationType.Warning: //om det är en varning-notis
+                    Console.WriteLine("Warning");
+                    Console.WriteLine(message);
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    break;
+
+            }
+            Console.WriteLine();
+        }
     }
 }
+
+    
+

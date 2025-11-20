@@ -282,6 +282,8 @@ namespace Travel_Journal
 
                     cost = cst.Value;
                     step++;
+
+                   
                 }
 
                 // === STEG 4 — AVLÄSNING DATUM (SEPARAT) ===
@@ -410,6 +412,12 @@ namespace Travel_Journal
 
             trips.Add(newTrip);
             SaveTrips();
+
+            NotificationService.ShowBudgetStatus(
+                       goalAmount: budget,
+                       currentAmount: cost,
+                       contextText: $"resan till {city}, {country}"
+                      );
 
             UI.Success($"Previous trip to {city}, {country} saved successfully!");
             UserSession.Pause();
@@ -967,5 +975,6 @@ namespace Travel_Journal
             ["venezuela"] = "Venezuela, Bolivarian Republic of",
             ["syria"] = "Syrian Arab Republic"
         };
+        
     }
 }
