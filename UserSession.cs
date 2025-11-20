@@ -114,6 +114,7 @@ namespace Travel_Journal
                     {
                         // Visa eventuella fel i AI-delen på ett snyggt sätt
                         UI.Error($"AI Travel Assistant failed: {ex.Message}");
+                        Logg.Log($"AI Travel Assistant error for user {_account.UserName}: {ex}");
                     }
 
                     // Vänta på ENTER innan menyn visas igen
@@ -135,6 +136,7 @@ namespace Travel_Journal
                     catch (Exception ex)
                     {
                         UI.Error($"Failed to generate world map: {ex.Message}");
+                        Logg.Log($"World Map error for user {_account.UserName}: {ex}");
                     }
 
                     // Ingen Pause() här!

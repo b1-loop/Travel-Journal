@@ -31,6 +31,7 @@ namespace Travel_Journal
             if (!File.Exists(template))
             {
                 UI.Error($"Fel: worldmap_template.html saknas!\nLetade i: {template}");
+                Logg.Log($"WorldMapService.OpenWorldMap: worldmap_template.html saknas i {template}");
                 return;
             }
 

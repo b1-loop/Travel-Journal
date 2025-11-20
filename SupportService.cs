@@ -41,6 +41,7 @@ namespace Travel_Journal
             if (!string.Equals(final, "delete", StringComparison.OrdinalIgnoreCase))
             {
                 UI.Warn("Cancelled — confirmation text didn’t match.");
+                Logg.Log($"Account deletion cancelled for user '{account.UserName}' — confirmation text mismatch.");
                 return false;
             }
 
@@ -95,6 +96,7 @@ namespace Travel_Journal
             catch (Exception ex)
             {
                 UI.Error($"Failed to delete account: {ex.Message}");
+                Logg.Log($"Error in deleting account for user '{account.UserName}': {ex}");
                 return false;
             }
         }
