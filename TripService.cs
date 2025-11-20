@@ -413,7 +413,8 @@ namespace Travel_Journal
             trips.Add(newTrip);
             SaveTrips();
 
-            NotificationService.ShowBudgetStatus(
+            NotificationService.ShowBudgetStatus( //Ropar på metoden ShowBudgetStatus från klassen NotificationService
+                                                  //för att informera jämfört med kostnaden
                        goalAmount: budget,
                        currentAmount: cost,
                        contextText: $"resan till {city}, {country}"
