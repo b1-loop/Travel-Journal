@@ -390,8 +390,52 @@ namespace Travel_Journal
             }
             Console.WriteLine();
         }
+        public static void ShowWarningPopup(string message)
+        {
+            ShowPopup(
+                headerMarkup: "[red]⚠ WARNING ⚠[/]",
+                bodyMarkup: $"[yellow]{message}[/]",
+                borderColor: Color.Red
+            );
+        }
+
+        // 🟢 SUCCESS
+        public static void ShowSuccessPopup(string message)
+        {
+            ShowPopup(
+                headerMarkup: "[green]✔ SUCCESS ✔[/]",
+                bodyMarkup: $"[green]{message}[/]",
+                borderColor: Color.Green
+            );
+        }
+
+        // 🔵 INFO
+        public static void ShowInfoPopup(string message)
+        {
+            ShowPopup(
+                headerMarkup: "[blue]ℹ INFO ℹ[/]",
+                bodyMarkup: $"[cyan]{message}[/]",
+                borderColor: Color.Blue
+            );
+        }
+
+        // 🔧 Gemensam stil för alla popups
+        private static void ShowPopup(string headerMarkup, string bodyMarkup, Color borderColor)
+        {
+            var panel = new Panel(bodyMarkup)
+                .Header(headerMarkup)
+                .Border(BoxBorder.Double)
+                .BorderStyle(new Style(borderColor));
+
+            AnsiConsole.Clear();
+            AnsiConsole.Write(panel);
+            AnsiConsole.MarkupLine("\n[grey]Press ENTER to continue...[/]");
+            Console.ReadLine();
+        }
     }
 }
+
+
 
     
 

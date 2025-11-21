@@ -427,6 +427,34 @@ namespace Travel_Journal
 
             UI.Success($"Previous trip to {city}, {country} saved successfully!");
             UI.Pause();
+            UI.Success($"Previous trip to {city}, {country} saved successfully!");//bekräftelse att resan har sparat i json
+            // Visa popup *bara om* du gått över budget
+            // Popup baserat på budgetutfall
+            if (cost > budget)
+            {
+                // ÖVER budget → Warning
+                UI.ShowWarningPopup(
+                    $"Du har överskridit din budget med {cost - budget} SEK för resan till {city}, {country}."
+                );
+            }
+            else if (cost == budget)
+            {
+                // EXAKT budget → Success
+                UI.ShowSuccessPopup(
+                    $"Du har precis nått din mål-budget för resan till {city}, {country}."
+                );
+            }
+            else // cost < budget
+            {
+                // UNDER budget → Info
+                decimal remaining = budget - cost;
+                UI.ShowInfoPopup(
+                    $"Du är {remaining} SEK under din mål-budget för resan till {city}, {country}."
+                );
+            }
+
+
+            UserSession.Pause();
         }
 
         // === Visar alla resor i tabellform ===
