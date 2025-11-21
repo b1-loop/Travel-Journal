@@ -3,9 +3,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
+using Travel_Journal.Data;
+using Travel_Journal.Models;
+using Travel_Journal.UIServices;
 
-namespace Travel_Journal
+namespace Travel_Journal.Services
 {
     /// <summary>
     /// SupportService hanterar allt som rör "Support & Hjälp"-menyn.
@@ -79,7 +81,7 @@ namespace Travel_Journal
                     store.Save(updated);
 
                     // Kort paus för snygg effekt
-                    System.Threading.Thread.Sleep(300);
+                    Thread.Sleep(300);
                 });
 
                 // === Bekräftelse ===

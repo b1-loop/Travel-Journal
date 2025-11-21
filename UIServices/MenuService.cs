@@ -2,15 +2,22 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Security.Principal;
 using System.Text;
 using System.Threading.Tasks;
+using Travel_Journal.Data;
+using Travel_Journal.Models;
+using Travel_Journal.Services;
+using Travel_Journal.UIServices;
 
-namespace Travel_Journal
+namespace Travel_Journal.UIServices
 {
     public static class MenuService // Statisk klass för menyer
     {
+        //private readonly DataStore<Account> _accountStore;
+
         // Visar en interaktiv meny där användaren väljer vad den vill göra.
         // Huvudmenyn
         public static string MainMenu()
@@ -287,5 +294,43 @@ namespace Travel_Journal
             }
         }
 
+        public static void ShowAdminMenu(AdminService adminService)
+        {
+            while (true)
+            {
+                UI.Transition("Admin Panel 🛠");
+
+                var choice = AnsiConsole.Prompt(
+                    new SelectionPrompt<string>()
+                        .Title("[red]Admin Panel[/]")
+                        .PageSize(7)
+                        .AddChoices(new[]
+                        {
+                    "👥 View all users",
+                    "🗑 Delete user",
+                    "🔁 Toggle admin role",
+                    "↩ Back"
+                        })
+                );
+
+                switch (choice)
+                {
+                    case "👥 View all users":
+                        adminService.ShowAllUsers();
+                        break;
+
+                    case "🗑 Delete user":
+                        adminService.DeleteUser();
+                        break;
+
+                    case "🔁 Toggle admin role":
+                        adminService.ToggleAdmin();
+                        break;
+
+                    case "↩ Back":
+                        return;
+                }
+            }
+        }
     }
 }

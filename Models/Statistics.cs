@@ -5,8 +5,11 @@ using System.Linq;
 using System.Security.Principal;
 using System.Text;
 using System.Threading.Tasks;
+using Travel_Journal.Data;
+using Travel_Journal.Services;
+using Travel_Journal.UIServices;
 
-namespace Travel_Journal
+namespace Travel_Journal.Models
 {
     public class Statistics
     {

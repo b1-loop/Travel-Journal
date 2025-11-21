@@ -1,7 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Text.Json;
+using Travel_Journal.Data;
+using Travel_Journal.UIServices;
 
-namespace Travel_Journal
+namespace Travel_Journal.Services
 {
     public class WorldMapService
     {

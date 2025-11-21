@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace Travel_Journal
+namespace Travel_Journal.Models
 {
     public class Account
     {
@@ -13,6 +13,7 @@ namespace Travel_Journal
         public string? Email { get; set; }
         public bool EmailVerified { get; set; }
         public bool TwoFactorEnabled { get; set; }
+        public bool IsAdmin { get; set; } = false;
 
         public string? PendingTwoFactorCodeHash { get; set; }
         public DateTime? PendingTwoFactorExpiresUtc { get; set; }
@@ -36,6 +37,11 @@ namespace Travel_Journal
         public bool CheckUserName(string userName)
         {
             return !string.IsNullOrWhiteSpace(userName);
+        }
+
+        public Account()
+        {
+            IsAdmin = false;
         }
     }
 }

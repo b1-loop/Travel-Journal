@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace Travel_Journal
+namespace Travel_Journal.Data
 {
     public static class Paths
     {

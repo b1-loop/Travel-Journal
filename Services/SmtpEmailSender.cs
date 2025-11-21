@@ -2,8 +2,9 @@
 using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
+using Travel_Journal.Email;
 
-namespace Travel_Journal.Email
+namespace Travel_Journal.Services
 {
     public class SmtpEmailSender : IEmailSender
     {

@@ -1,7 +1,9 @@
 ﻿using Spectre.Console;
 using System;
+using Travel_Journal.Data;
+using Travel_Journal.Models;
 
-namespace Travel_Journal
+namespace Travel_Journal.UIServices
 {
     public static class UI
     {
@@ -65,7 +67,7 @@ namespace Travel_Journal
                 .Start(text, _ =>
                 {
                     action();
-                    System.Threading.Thread.Sleep(300);
+                    Thread.Sleep(300);
                 });
         }
 
@@ -135,7 +137,7 @@ namespace Travel_Journal
             foreach (var ch in text)
             {
                 AnsiConsole.Markup($"[grey]{Markup.Escape(ch.ToString())}[/]");
-                System.Threading.Thread.Sleep(6);
+                Thread.Sleep(6);
             }
 
             AnsiConsole.WriteLine();

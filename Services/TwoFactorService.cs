@@ -4,8 +4,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Spectre.Console;
 using Travel_Journal.Email;
+using Travel_Journal.Models;
 
-namespace Travel_Journal.Security
+namespace Travel_Journal.Services
 {
     public class TwoFactorService
     {

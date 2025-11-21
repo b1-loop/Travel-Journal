@@ -3,9 +3,11 @@ using Spectre.Console;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Principal;
+using Travel_Journal.Data;
+using Travel_Journal.Models;
+using Travel_Journal.UIServices;
 
-namespace Travel_Journal
+namespace Travel_Journal.Services
 {
     public class TripService
     {
@@ -169,7 +171,7 @@ namespace Travel_Journal
                         continue;
                     }
 
-                    passengers = (int)p.Value;
+                    passengers = p.Value;
                     step++;
                 }
             }
@@ -347,7 +349,7 @@ namespace Travel_Journal
                         continue;
                     }
 
-                    passengers = (int)p.Value;
+                    passengers = p.Value;
                     step++;
                 }
 

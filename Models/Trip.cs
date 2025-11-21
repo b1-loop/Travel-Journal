@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Travel_Journal
+namespace Travel_Journal.Models
 {
     public class Trip
     {

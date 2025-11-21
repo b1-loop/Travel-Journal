@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using Spectre.Console;
+using Travel_Journal.UIServices;
 
-namespace Travel_Journal
+namespace Travel_Journal.Data
 {
     // En generisk klass som kan läsa/spara valfri lista av objekt till JSON.
     public class DataStore<T>
@@ -18,6 +19,12 @@ namespace Travel_Journal
 
             // Bygg hela filsökvägen, t.ex. "data/andre_trips.json"
             _filePath = Path.Combine(Paths.DataDir, fileName);
+        }
+
+        private List<T> _items = new();
+        public List<T> GetAll()
+        {
+            return _items;
         }
 
         // Spara listan till JSON-fil
