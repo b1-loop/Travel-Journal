@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Travel_Journal
+namespace Travel_Journal.UIServices
 {
     public static class Util
     {

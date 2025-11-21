@@ -1,5 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using Travel_Journal.Data;
+using Travel_Journal.Services;
+using Travel_Journal.UIServices;
 
 namespace Travel_Journal
 {

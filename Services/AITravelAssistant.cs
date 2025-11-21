@@ -4,9 +4,10 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
+using Travel_Journal.Data;
+using Travel_Journal.UIServices;
 
-namespace Travel_Journal
+namespace Travel_Journal.Services
 {
     /// <summary>
     /// AITravelAssistant använder OpenAI:s API för att generera reseförslag 
