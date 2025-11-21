@@ -19,19 +19,28 @@ namespace Travel_Journal
             TypeOut("Welcome! Navigate using the menu below.");
         }
 
-        // ============================
-        //   HUVUDMENY
-        // ============================
-
-        // Visar en interaktiv meny där användaren väljer vad den vill göra.
-        public static string MainMenu()
+        // Metod för att visa profil
+        public static void ShowProfile(Account account)
         {
-            return AnsiConsole.Prompt(
-                new SelectionPrompt<string>()
-                    .Title("[bold cyan]Choose:[/]")
-                    .HighlightStyle(new Style(Color.DeepSkyBlue1))
-                    .AddChoices("Register", "Login", "Forgot password", "Exit")
-            );
+            // Skapa en tabell med Spectre.Console
+            var t = new Table()
+                .Border(TableBorder.Rounded)
+                .BorderStyle(new Style(Color.DarkViolet));
+
+            // Kolumner
+            t.AddColumn("Attribute");
+            t.AddColumn("Details");
+
+            // Lägg till data från kontot
+            t.AddRow("Username:", account.UserName);
+            t.AddRow("Created:", account.CreatedAt == default
+                ? "—"
+                : account.CreatedAt.ToString("yyyy-MM-dd HH:mm"));
+            t.AddRow("Recovery Code:", account.RecoveryCode);
+            t.AddRow("Savings:", $"{account.Savings} kr");
+
+            // Skriv ut tabellen i terminalen
+            AnsiConsole.Write(t);
         }
 
         // ============================
@@ -289,6 +298,70 @@ namespace Travel_Journal
             }
 
             return dt;
+        }
+        // Ask step int metod där 0 = back + loggning vid felaktigt heltal
+        public static int? AskStepInt(string prompt)
+        {
+            AnsiConsole.MarkupLine("[grey]← Press [red]0[/] to go back one step[/]");
+            var input = AnsiConsole.Ask<string>($"{prompt}:");
+            if (input.Trim() == "0")
+            {
+                Logg.Log($"User pressed 0 → Step back from int prompt '{prompt}'");
+                return null;
+            }
+            if (!int.TryParse(input, out var val))
+            {
+                Logg.Log($"Invalid integer input '{input}' for '{prompt}'");
+                Error("Invalid number.");
+                return AskStepInt(prompt);
+            }
+            return val;
+        }
+        // === Decimal-prompt med samma felhantering som AskStepDate ===
+        // Läser ett decimalvärde, loggar fel och loopar tills användaren skriver rätt.
+        public static decimal AskDecimal(string prompt)
+        {
+            // Läs in rå text
+            string input = AnsiConsole.Ask<string>($"{prompt}: ");
+
+            // Försök konvertera
+            if (!decimal.TryParse(input, out var val))
+            {
+                // Logga exakt samma format som i datumversionen
+                Logg.Log($"Invalid decimal input '{input}' for '{prompt}'");
+
+                // Samma felmeddelande
+                Error("Invalid number.");
+
+                // Loop via rekursion – exakt som din andra metod
+                return AskDecimal(prompt);
+            }
+
+            return val;
+        }
+        public static int AskInt(string prompt)
+        {
+            // Läs in rå text
+            string input = AnsiConsole.Ask<string>($"{prompt}: ");
+            // Försök konvertera
+            if (!int.TryParse(input, out var val))
+            {
+                // Logga fel
+                Logg.Log($"Invalid integer input '{input}' for '{prompt}'");
+                // Samma felmeddelande
+                Error("Invalid number.");
+                // Loop via rekursion
+                return AskInt(prompt);
+            }
+            return val;
+        }
+
+        //Enkel paus metod
+        public static void Pause()
+        {
+            AnsiConsole.MarkupLine("\n[grey]Press [bold]ENTER[/] to continue...[/]");
+            Console.ReadLine();
+            AnsiConsole.Clear();
         }
         public static void ShowNotification(string message, NotificationType type)//metod som ansvarar för att visa notiser
         {

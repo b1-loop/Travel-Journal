@@ -41,6 +41,7 @@ namespace Travel_Journal
             if (!string.Equals(final, "delete", StringComparison.OrdinalIgnoreCase))
             {
                 UI.Warn("Cancelled — confirmation text didn’t match.");
+                Logg.Log($"Account deletion cancelled for user '{account.UserName}' — confirmation text mismatch.");
                 return false;
             }
 
@@ -95,6 +96,7 @@ namespace Travel_Journal
             catch (Exception ex)
             {
                 UI.Error($"Failed to delete account: {ex.Message}");
+                Logg.Log($"Error in deleting account for user '{account.UserName}': {ex}");
                 return false;
             }
         }
@@ -149,62 +151,6 @@ Protect your device if your information is sensitive.
 
 [yellow]Thank you for using Travel Journal![/]
 ");
-        }
-
-
-        // === 💬 Support & Hjälpmeny ===
-        // Returnerar true om användaren valt att radera sitt konto (så att sessionen kan avslutas).
-        public bool ShowSupportMenu(Account account)
-        {
-            while (true)
-            {
-                var choice = AnsiConsole.Prompt(
-                    new SelectionPrompt<string>()
-                        .Title("[aqua]🛟 Support & Help[/]")
-                        .PageSize(7)
-                        .HighlightStyle(new Style(Color.Cyan1))
-                        .AddChoices(new[]
-                        {
-                            "📩 Contact Support",
-                            "❓ FAQ - Frequently Asked Questions",
-                            "📃 Terms & Privacy",
-                            "🗑  Delete Account",
-                            "↩ Back"
-                        })
-                );
-
-                switch (choice)
-                {
-                    case "📩 Contact Support":
-                        AnsiConsole.Clear();
-                        EmailInfo();
-                        UserSession.Pause();
-                        break;
-
-                    case "❓ FAQ - Frequently Asked Questions":
-                        AnsiConsole.Clear();
-                        FAQInfo();
-                        UserSession.Pause();
-                        break;
-
-                    case "📃 Terms & Privacy":
-                        AnsiConsole.Clear();
-                        TermsAndPrivacy();
-                        UserSession.Pause();
-                        break;
-
-                    case "🗑  Delete Account":
-                        AnsiConsole.Clear();
-                        bool deleted = DeleteAccountFlow(account);
-                        if (deleted)
-                            return true; // 🔹 Avsluta hela sessionen efter deletion
-                        UserSession.Pause();
-                        break;
-
-                    case "↩ Back":
-                        return false; // 🔹 Tillbaka utan att avsluta sessionen
-                }
-            }
         }
     }
 }

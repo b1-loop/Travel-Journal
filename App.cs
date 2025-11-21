@@ -29,7 +29,7 @@ namespace Travel_Journal
             while (true)
             {
                 // 🧭 Visar huvudmenyn med Spectre.Console och sparar användarens val
-                var choice = UI.MainMenu(); // Alternativ: Register / Login / Forgot password / Exit
+                var choice = MenuService.MainMenu(); // Alternativ: Register / Login / Forgot password / Exit
 
                 switch (choice)
                 {
@@ -95,6 +95,7 @@ namespace Travel_Journal
                     default:
                         // === Avslutar programmet ===
                         UI.Transition("Exiting...");
+                        Logg.Log("Application ended."); //Loggar att appen har avslutats
                         AnsiConsole.MarkupLine("[green]Thank you for using Travel Journal![/]");
 
                         // Kort paus innan konsolen stängs för snygg exit-animation

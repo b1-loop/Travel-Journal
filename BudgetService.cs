@@ -9,6 +9,8 @@ namespace Travel_Journal
         private readonly Account _account;
         private readonly TripService _tripService;
 
+        public Account Account => _account;
+
         // Konstruktor tar in aktuell användare och hens resor
         public BudgetService(Account account, TripService tripService)
         {
@@ -16,51 +18,15 @@ namespace Travel_Journal
             _tripService = tripService;
         }
 
-        // === Huvudmeny för budgetfunktionen ===
-        public void ShowBudgetMenu()
-        {
-            while (true)
-            {
-                UI.Transition("💰 Travel Savings Account");
-
-                // Visa saldo längst upp
-                AnsiConsole.MarkupLine($"[bold green]Current balance:[/] {_account.Savings} SEK\n");
-
-                // Menyalternativ
-                var choice = AnsiConsole.Prompt(
-                    new SelectionPrompt<string>()
-                        .Title("[bold cyan]What would you like to do?[/]")
-                        .HighlightStyle(new Style(Color.Chartreuse1))
-                        .AddChoices("➕ Deposit money", "➖ Withdraw money", "📊 View trip budgets", "✨ Dream Vacation", "↩ Back")
-                );
-
-                if (choice == "➕ Deposit money")
-                {
-                    Deposit();
-                }
-                else if (choice == "➖ Withdraw money")
-                {
-                    Withdraw();
-                }
-                else if (choice == "📊 View trip budgets")
-                {
-                    ShowTripBudgets();
-                }
-                else if (choice == "✨ Dream Vacation")
-                {
-                    DreamVacation();
-                }
-                else break;
-            }
-        }
-
         // === Sätta in pengar ===
-        private void Deposit()
+        public void Deposit()
         {
-            decimal amount = AnsiConsole.Ask<decimal>("How much would you like to [green]deposit[/]?");
+            decimal amount = UI.AskDecimal("How much would you like to [green]deposit[/]?");
             if (amount <= 0)
             {
                 UI.Warn("Amount must be greater than zero.");
+                Logg.Log($"User attempted to deposit invalid amount: {amount}");
+                UI.Pause();
                 return;
             }
 
@@ -68,21 +34,24 @@ namespace Travel_Journal
             AccountStore.Update(_account);
             AccountStore.Save();
             UI.Success($"Deposited {amount} SEK. New balance: {_account.Savings} SEK");
+            UI.Pause();
         }
 
         // === Ta ut pengar ===
-        private void Withdraw()
+        public void Withdraw()
         {
-            decimal amount = AnsiConsole.Ask<decimal>("How much would you like to [red]withdraw[/]?");
+            decimal amount = UI.AskDecimal("How much would you like to [red]withdraw[/]?");
             if (amount <= 0)
             {
                 UI.Warn("Amount must be greater than zero.");
+                Logg.Log($"User attempted to withdraw invalid amount: {amount}");
                 return;
             }
 
             if (amount > _account.Savings)
             {
                 UI.Error("You don't have enough balance!");
+                Logg.Log($"Insufficient balance: tried to withdraw {amount} but only {_account.Savings} available.");
                 return;
             }
 
@@ -90,15 +59,17 @@ namespace Travel_Journal
             AccountStore.Update(_account);
             AccountStore.Save();
             UI.Success($"Withdrew {amount} SEK. New balance: {_account.Savings} SEK");
+            UI.Pause();
         }
 
         // === Visa resor med planerad budget och faktisk kostnad ===
-        private void ShowTripBudgets()
+        public void ShowTripBudgets()
         {
             var trips = _tripService.GetTrips(); // Hämtar alla resor
             if (trips.Count == 0)
             {
                 UI.Warn("No trips found.");
+                Logg.Log($"No trips found for user '{_account.UserName}' in ShowTripBudgets.");
                 return;
             }
 
@@ -146,10 +117,13 @@ namespace Travel_Journal
             }
 
             AnsiConsole.Write(table);
+            UI.Pause();
         }
 
         public void DreamVacation()
         {
+            AnsiConsole.Clear();
+
             UI.Transition("✨ Dream Vacation"); // Titelövergång
 
             // Kontrollera om användaren redan har en sparad drömresa
@@ -207,7 +181,7 @@ namespace Travel_Journal
             if (confirm == "❌ No")
             {
                 AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
-                UserSession.Pause();
+                UI.Pause();
                 return;
             }
             else

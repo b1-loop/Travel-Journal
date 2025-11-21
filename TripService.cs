@@ -1,7 +1,9 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using Spectre.Console;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Spectre.Console;
+using System.Security.Principal;
 
 namespace Travel_Journal
 {
@@ -13,6 +15,7 @@ namespace Travel_Journal
 
         // Användarens namn (för filidentifiering)
         private readonly string username;
+        public string UserName => username;
 
         // Hanterar laddning och sparning av trips till JSON
         private readonly DataStore<Trip> store;
@@ -158,7 +161,7 @@ namespace Travel_Journal
                     UI.ShowFormHeader("Add Upcoming Trip ✈️",
                         country, city, budget, startDate, endDate, passengers);
 
-                    var p = UI.AskStepDecimal("How many passengers?");
+                    var p = UI.AskStepInt("How many passengers?");
                     if (p == null)
                     {
                         step--;
@@ -185,7 +188,7 @@ namespace Travel_Journal
             SaveTrips();
 
             UI.Success($"Trip to {city}, {country} added successfully!");
-            UserSession.Pause();
+            UI.Pause();
         }
 
 
@@ -323,6 +326,7 @@ namespace Travel_Journal
                     if (startDate > e)
                     {
                         UI.Warn("Return date must be after departure date.");
+                        Logg.Log($"User '{username}' entered invalid return date in AddPreviousTrip.");
                         continue;
                     }
 
@@ -337,7 +341,7 @@ namespace Travel_Journal
                         country, city, budget, startDate, endDate, passengers,
                         cost, score, review);
 
-                    var p = UI.AskStepDecimal("How many passengers?");
+                    var p = UI.AskStepInt("How many passengers?");
                     if (p == null)
                     {
                         step--;
@@ -369,6 +373,7 @@ namespace Travel_Journal
                     if (rating < 1 || rating > 5)
                     {
                         UI.Warn("Rating must be between 1–5.");
+                        Logg.Log($"User '{username}' entered invalid rating in AddPreviousTrip.");
                         continue;
                     }
 
@@ -421,51 +426,19 @@ namespace Travel_Journal
                       );
 
             UI.Success($"Previous trip to {city}, {country} saved successfully!");
-            UserSession.Pause();
-        }
-
-
-        public void ShowManageTripsMenu() 
-        {
-            while(true)
-    {
-                var choice = AnsiConsole.Prompt(
-                    new SelectionPrompt<string>()
-                        .Title("[aqua]Add Trips[/]")
-                        .PageSize(8)
-                        .AddChoices(new[]
-                        {
-                    "➕ Add Upcoming Trip",
-                    "🕰 Add Previous Trip",
-              
-                    "↩ Back"
-                        })
-                );
-
-                switch (choice)
-                {
-                    case "➕ Add Upcoming Trip":
-                        AddUpcomingTrip();
-                        break;
-
-                    case "🕰 Add Previous Trip":
-                        AddPreviousTrip();
-                        break;
-
-                    case "↩ Back":
-                        return; // tillbaka till huvudmenyn
-                }
-            }
+            UI.Pause();
         }
 
         // === Visar alla resor i tabellform ===
         public void ShowAllTrips()
         {
+            AnsiConsole.Clear();
             UI.Transition($"All Trips for {username} 🌍");
 
             if (!trips.Any())
             {
                 UI.Warn("No trips found for this account.");
+                Logg.Log($"No trips found for user '{username}' in ShowAllTrips.");
                 return;
             }
 
@@ -491,6 +464,7 @@ namespace Travel_Journal
                 if (!tripList.Any())
                 {
                     AnsiConsole.MarkupLine("[grey]No trips in this category.[/]");
+                    Logg.Log($"No trips found in category '{title}' for user '{username}'.");
                     continue;
                 }
 
@@ -550,365 +524,392 @@ namespace Travel_Journal
         {
             return trips;
         }
-        public void UpdateTrips(List<Trip> updatedTrips) // Hjälpmetod för att uppdatera resor.
+
+        // === ⭐ Uppdatera betyg ===
+        public void UpdateRating(List<Trip> updatedTrips)
         {
-            var choice = AnsiConsole.Prompt(
-                new SelectionPrompt<string>()
-                    .Title("[bold cyan]🛠️ Choose what you want to update or manage: [/]")
+            if (updatedTrips is null || updatedTrips.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
+                Logg.Log($"No trips available to update rating for user '{username}'.");
+                UI.Pause();
+                return;
+            }
+
+            var selectedTrip = AnsiConsole.Prompt(
+                new SelectionPrompt<Trip>()
+                    .Title("[bold]Select a trip to update its rating:[/]")
                     .HighlightStyle(new Style(Color.DeepSkyBlue1))
-                    .AddChoices(
-                        "⭐ Rating",
-                        "🛫 Depart Date",
-                        "🛬 Return Date",
-                        "💰 Budget",
-                        "💸 Cost",
-                        "👥 Number of Passengers",
-                        "🗑️ Delete Trip",
-                        "↩️ Return"
-                    )
+                    .UseConverter(t => $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd}) | Score: {t.Score}")
+                    .AddChoices(updatedTrips)
             );
 
-            switch (choice)
+            var newScore = AnsiConsole.Prompt(
+                new TextPrompt<int>("Enter the new rating [[1-5]]:")
+                    .Validate(s =>
+                    {
+                        if (s is >= 1 and <= 5)
+                            return ValidationResult.Success();
+                        Logg.Log($"Invalid rating input: '{s}'. Must be between 1 and 5.");
+                        return ValidationResult.Error("[red]Rating must be between 1 and 5[/]");
+                    })
+            );
+
+            var confirm = AnsiConsole.Prompt(
+                new SelectionPrompt<string>()
+                    .Title($"Do you want to update the rating for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] to [bold]{newScore}[/]?")
+                    .AddChoices("✅ Yes", "❌ No")
+            );
+
+            if (confirm == "❌ No")
             {
-                case "⭐ Rating":
-                    UpdateRating();
-                    SaveTrips();
-                    break;
-
-                case "🛫 Depart Date":
-                    UpdateDepartDate();
-                    SaveTrips();
-                    break;
-
-                case "🛬 Return Date":
-                    UpdateReturnDate();
-                    SaveTrips();
-                    break;
-
-                case "💰 Budget":
-                    UpdateBudget();
-                    SaveTrips();
-                    break;
-
-                case "💸 Cost":
-                    UpdateCost();
-                    SaveTrips();
-                    break;
-
-                case "👥 Number of Passengers":
-                    UpdateNumberOfPassengers();
-                    SaveTrips();
-                    break;
-
-                case "🗑️ Delete Trip":
-                    DeleteTrip();
-                    SaveTrips();
-                    break;
-
-                case "↩️ Return":
-                    // Går tillbaka utan att göra ändringar
-                    break;
+                AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
+                Logg.Log($"User '{username}' cancelled rating update for trip to '{selectedTrip.City}, {selectedTrip.Country}'.");
+                UI.Pause();
+                return;
             }
 
-
-            void UpdateRating()
-            {
-                if (updatedTrips is null || updatedTrips.Count == 0)
-                {
-                    AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
-                    UserSession.Pause();
-                    return;
-                }
-
-                var selectedTrip = AnsiConsole.Prompt(
-                    new SelectionPrompt<Trip>()
-                        .Title("[bold]Select a trip to update its rating:[/]")
-                        .HighlightStyle(new Style(Color.DeepSkyBlue1))
-                        .UseConverter(t => $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd}) | Score: {t.Score}")
-                        .AddChoices(updatedTrips)
-                );
-
-                var newScore = AnsiConsole.Prompt(
-                    new TextPrompt<int>("Enter the new rating [[1-5]]:")
-                        .Validate(s => s is >= 1 and <= 5
-                            ? ValidationResult.Success()
-                            : ValidationResult.Error("[red]Rating must be between 1 and 5[/]"))
-                );
-
-                var confirm = AnsiConsole.Prompt(
-                    new SelectionPrompt<string>()
-                        .Title($"Do you want to update the rating for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] to [bold]{newScore}[/]?")
-                        .AddChoices("✅ Yes", "❌ No")
-                );
-
-                if (confirm == "❌ No")
-                {
-                    AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
-                    UserSession.Pause();
-                    return;
-                }
-
-
-                selectedTrip.Score = newScore;
-                AnsiConsole.MarkupLine($"[green]✅ Rating updated to {newScore}/5 for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]![/]");
-                UserSession.Pause();
-            }
-
-            void UpdateDepartDate()
-            {
-                if (updatedTrips is null || updatedTrips.Count == 0)
-                {
-                    AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
-                    UserSession.Pause();
-                    return;
-                }
-
-                var selectedTrip = AnsiConsole.Prompt(
-                    new SelectionPrompt<Trip>()
-                        .Title("[bold]Select a trip to update the date of depart:[/]")
-                        .HighlightStyle(new Style(Color.DeepSkyBlue1))
-                        .UseConverter(t => $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd})")
-                        .AddChoices(updatedTrips)
-                );
-
-                var newDateOfDepart = AnsiConsole.Prompt(
-                    new TextPrompt<DateTime>("Enter the new date [[YYYY-MM-DD]]:")
-                        .Validate(s => s != null
-                            ? ValidationResult.Success()
-                            : ValidationResult.Error("[red]Date must be in format YYYY-MM-DD[/]"))
-                );
-
-                var confirm = AnsiConsole.Prompt(
-                    new SelectionPrompt<string>()
-                        .Title($"Do you want to update the departure date for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] from {selectedTrip.StartDate:yyyy-MM-dd} to [bold]{newDateOfDepart:yyyy-MM-dd}[/]?")
-                        .AddChoices("✅ Yes", "❌ No")
-                );
-
-                if (confirm == "❌ No")
-                {
-                    AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
-                    UserSession.Pause();
-                    return;
-                }
-
-                selectedTrip.StartDate = newDateOfDepart;
-                AnsiConsole.MarkupLine($"[green]✅ Departure date updated for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]![/]");
-                UserSession.Pause();
-            }
-
-            void UpdateReturnDate()
-            {
-                if (updatedTrips is null || updatedTrips.Count == 0)
-                {
-                    AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
-                    UserSession.Pause();
-                    return;
-                }
-
-                var selectedTrip = AnsiConsole.Prompt(
-                    new SelectionPrompt<Trip>()
-                        .Title("[bold]Select a trip to update the return date:[/]")
-                        .HighlightStyle(new Style(Color.DeepSkyBlue1))
-                        .UseConverter(t => $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd})")
-                        .AddChoices(updatedTrips)
-                );
-
-                var newReturnDate = AnsiConsole.Prompt(
-                    new TextPrompt<DateTime>("Enter the new return date [[YYYY-MM-DD]]:")
-                        .Validate(s => s != null
-                            ? ValidationResult.Success()
-                            : ValidationResult.Error("[red]Date must be in format YYYY-MM-DD[/]"))
-                );
-
-                var confirm = AnsiConsole.Prompt(
-                    new SelectionPrompt<string>()
-                        .Title($"Do you want to update the return date for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] from {selectedTrip.EndDate:yyyy-MM-dd} to [bold]{newReturnDate:yyyy-MM-dd}[/]?")
-                        .AddChoices("✅ Yes", "❌ No")
-                );
-
-                if (confirm == "❌ No")
-                {
-                    AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
-                    UserSession.Pause();
-                    return;
-                }
-
-                selectedTrip.EndDate = newReturnDate;
-                AnsiConsole.MarkupLine($"[green]✅ Return date updated for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]![/]");
-                UserSession.Pause();
-            }
-
-            void UpdateBudget()
-            {
-                if (updatedTrips is null || updatedTrips.Count == 0)
-                {
-                    AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
-                    UserSession.Pause();
-                    return;
-                }
-
-                var selectedTrip = AnsiConsole.Prompt(
-                    new SelectionPrompt<Trip>()
-                        .Title("[bold]Select a trip to update its budget:[/]")
-                        .HighlightStyle(new Style(Color.DeepSkyBlue1))
-                        .UseConverter(t => $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd}) | Budget: {t.PlannedBudget}")
-                        .AddChoices(updatedTrips)
-                );
-
-                var newBudget = AnsiConsole.Prompt(
-                    new TextPrompt<decimal>("Enter the new budget:")
-                        .Validate(s => s >= 0
-                            ? ValidationResult.Success()
-                            : ValidationResult.Error("[red]Budget must be a positive number[/]"))
-                );
-
-                var confirm = AnsiConsole.Prompt(
-                    new SelectionPrompt<string>()
-                        .Title($"Do you want to update the budget for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] from {selectedTrip.PlannedBudget} to [bold]{newBudget}[/]?")
-                        .AddChoices("✅ Yes", "❌ No")
-                );
-
-                if (confirm == "❌ No")
-                {
-                    AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
-                    UserSession.Pause();
-                    return;
-                }
-
-                selectedTrip.PlannedBudget = newBudget;
-                AnsiConsole.MarkupLine($"[green]✅ Budget updated for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]![/]");
-                UserSession.Pause();
-            }
-
-            void UpdateCost()
-            {
-                if (updatedTrips is null || updatedTrips.Count == 0)
-                {
-                    AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
-                    UserSession.Pause();
-                    return;
-                }
-
-                var selectedTrip = AnsiConsole.Prompt(
-                    new SelectionPrompt<Trip>()
-                        .Title("[bold]Select a trip to update its cost:[/]")
-                        .HighlightStyle(new Style(Color.DeepSkyBlue1))
-                        .UseConverter(t => $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd}) | Cost: {t.Cost}")
-                        .AddChoices(updatedTrips)
-                );
-
-                var newCost = AnsiConsole.Prompt(
-                    new TextPrompt<decimal>("Enter the new cost:")
-                        .Validate(s => s >= 0
-                            ? ValidationResult.Success()
-                            : ValidationResult.Error("[red]Cost must be a positive number[/]"))
-                );
-
-                var confirm = AnsiConsole.Prompt(
-                    new SelectionPrompt<string>()
-                        .Title($"Do you want to update the total cost for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] from {selectedTrip.Cost} to [bold]{newCost}[/]?")
-                        .AddChoices("✅ Yes", "❌ No")
-                );
-
-                if (confirm == "❌ No")
-                {
-                    AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
-                    UserSession.Pause();
-                    return;
-                }
-
-                selectedTrip.Cost = newCost;
-                AnsiConsole.MarkupLine($"[green]✅ Cost updated for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]![/]");
-                UserSession.Pause();
-            }
-
-            void UpdateNumberOfPassengers()
-            {
-                if (updatedTrips is null || updatedTrips.Count == 0)
-                {
-                    AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
-                    UserSession.Pause();
-                    return;
-                }
-
-                var selectedTrip = AnsiConsole.Prompt(
-                    new SelectionPrompt<Trip>()
-                        .Title("[bold]Select a trip to update its number of passengers:[/]")
-                        .HighlightStyle(new Style(Color.DeepSkyBlue1))
-                        .UseConverter(t => $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd}) | Passengers: {t.NumberOfPassengers}")
-                        .AddChoices(updatedTrips)
-                );
-
-                var newNumberOfPassengers = AnsiConsole.Prompt(
-                    new TextPrompt<int>("Enter the new number of passengers:")
-                        .Validate(s => s >= 1
-                            ? ValidationResult.Success()
-                            : ValidationResult.Error("[red]Number of passengers must be at least 1[/]"))
-                );
-
-                var confirm = AnsiConsole.Prompt(
-                    new SelectionPrompt<string>()
-                        .Title($"Do you want to update the number of passangers for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] from {selectedTrip.NumberOfPassengers} to [bold]{newNumberOfPassengers}[/]?")
-                        .AddChoices("✅ Yes", "❌ No")
-                );
-
-                if (confirm == "❌ No")
-                {
-                    AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
-                    UserSession.Pause();
-                    return;
-                }
-
-                selectedTrip.NumberOfPassengers = newNumberOfPassengers;
-                AnsiConsole.MarkupLine($"[green]✅ Number of passengers updated for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]![/]");
-                UserSession.Pause();
-            }
-
-            void DeleteTrip()
-            {
-                // Kontrollera att det finns resor att ta bort
-                if (updatedTrips is null || updatedTrips.Count == 0)
-                {
-                    AnsiConsole.MarkupLine("[yellow]No trips to delete.[/]");
-                    UserSession.Pause();
-                    return;
-                }
-
-                // Visa en meny där användaren väljer vilken resa som ska tas bort
-                var selectedTrip = AnsiConsole.Prompt(
-                    new SelectionPrompt<Trip>()
-                        .Title("[bold red]Select a trip to [underline]delete[/]:[/]")
-                        .HighlightStyle(new Style(Color.Red))
-                        .UseConverter(t => $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd})")
-                        .AddChoices(updatedTrips)
-                );
-
-                // Bekräfta att användaren verkligen vill ta bort resan
-                var confirm = AnsiConsole.Prompt(
-                    new SelectionPrompt<string>()
-                        .Title($"Are you sure you want to delete the trip for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]?")
-                        .AddChoices("✅ Yes", "❌ No")
-                );
-
-                if (confirm == "❌ No")
-                {
-                    AnsiConsole.MarkupLine("[grey]Delete cancelled.[/]");
-                    UserSession.Pause();
-                    return;
-                }
-
-                // Ta bort resan från listan
-                updatedTrips.Remove(selectedTrip);
-
-                // Spara uppdaterad lista till fil (via DataStore)
-                store.Save(updatedTrips);
-
-                // Bekräftelse till användaren
-                AnsiConsole.MarkupLine(
-                    $"[green]✅ Trip [bold]{selectedTrip.City}, {selectedTrip.Country}[/] has been deleted successfully![/]");
-                UserSession.Pause();
-            }
+            selectedTrip.Score = newScore;
+            AnsiConsole.MarkupLine($"[green]✅ Rating updated to {newScore}/5 for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]![/]");
+            UI.Pause();
         }
+
+        // Metod för att uppdatera rating
+        public void UpdateDepartDate(List<Trip> updatedTrips)
+        {
+            if (updatedTrips is null || updatedTrips.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
+                Logg.Log($"No trips available to update departure date for user '{username}'.");
+                UI.Pause();
+                return;
+            }
+
+            var selectedTrip = AnsiConsole.Prompt(
+                new SelectionPrompt<Trip>()
+                    .Title("[bold]Select a trip to update the date of depart:[/]")
+                    .HighlightStyle(new Style(Color.DeepSkyBlue1))
+                    .UseConverter(t => $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd})")
+                    .AddChoices(updatedTrips)
+            );
+
+            var rawDate = AnsiConsole.Prompt(
+                new TextPrompt<string>("Enter the new date [[YYYY-MM-DD]]:")
+                    .Validate(input =>
+                    {
+                        if (DateTime.TryParse(input, out _))
+                            return ValidationResult.Success();
+
+                        Logg.Log($"Invalid date input: '{input}'. Expected format YYYY-MM-DD.");
+                        return ValidationResult.Error("[red]Date must be in format YYYY-MM-DD[/]");
+                    })
+            );
+
+            var newDateOfDepart = DateTime.Parse(rawDate);
+
+            var confirm = AnsiConsole.Prompt(
+                new SelectionPrompt<string>()
+                    .Title($"Do you want to update the departure date for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] from {selectedTrip.StartDate:yyyy-MM-dd} to [bold]{newDateOfDepart:yyyy-MM-dd}[/]?")
+                    .AddChoices("✅ Yes", "❌ No")
+            );
+
+            if (confirm == "❌ No")
+            {
+                AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
+                Logg.Log($"User '{username}' cancelled departure date update for trip to '{selectedTrip.City}, {selectedTrip.Country}'.");
+                UI.Pause();
+                return;
+            }
+
+            selectedTrip.StartDate = newDateOfDepart;
+            AnsiConsole.MarkupLine($"[green]✅ Departure date updated for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]![/]");
+            UI.Pause();
+        }
+
+        // Metod för att uppdatera return date
+        public void UpdateReturnDate(List<Trip> updatedTrips)
+        {
+            if (updatedTrips is null || updatedTrips.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
+                Logg.Log($"No trips available to update return date for user '{username}'.");
+                UI.Pause();
+                return;
+            }
+
+            var selectedTrip = AnsiConsole.Prompt(
+                new SelectionPrompt<Trip>()
+                    .Title("[bold]Select a trip to update the return date:[/]")
+                    .HighlightStyle(new Style(Color.DeepSkyBlue1))
+                    .UseConverter(t => $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd})")
+                    .AddChoices(updatedTrips)
+            );
+
+            var rawDate = AnsiConsole.Prompt(
+                new TextPrompt<string>("Enter the new return date [[YYYY-MM-DD]]:")
+                    .Validate(input =>
+                    {
+                        if (DateTime.TryParse(input, out _))
+                            return ValidationResult.Success();
+
+                        Logg.Log($"Invalid return date input: '{input}'. Expected format YYYY-MM-DD.");
+                        return ValidationResult.Error("[red]Date must be in format YYYY-MM-DD[/]");
+                    })
+            );
+
+            var newReturnDate = DateTime.Parse(rawDate);
+
+            var confirm = AnsiConsole.Prompt(
+                new SelectionPrompt<string>()
+                    .Title(
+                        $"Do you want to update the return date for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] " +
+                        $"from {selectedTrip.EndDate:yyyy-MM-dd} to [bold]{newReturnDate:yyyy-MM-dd}[/]?"
+                    )
+                    .AddChoices("✅ Yes", "❌ No")
+            );
+
+            if (confirm == "❌ No")
+            {
+                AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
+                Logg.Log(
+                    $"User '{username}' cancelled return date update for trip to " +
+                    $"'{selectedTrip.City}, {selectedTrip.Country}'."
+                );
+                UI.Pause();
+                return;
+            }
+
+            selectedTrip.EndDate = newReturnDate;
+
+            AnsiConsole.MarkupLine(
+                $"[green]✅ Return date updated for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]![/]"
+            );
+            UI.Pause();
+        }
+
+        // Metod för att uppdatera budget
+        public void UpdateBudget(List<Trip> updatedTrips)
+        {
+            if (updatedTrips is null || updatedTrips.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
+                Logg.Log($"No trips available to update budget for user '{username}'.");
+                UI.Pause();
+                return;
+            }
+
+            var selectedTrip = AnsiConsole.Prompt(
+                new SelectionPrompt<Trip>()
+                    .Title("[bold]Select a trip to update its budget:[/]")
+                    .HighlightStyle(new Style(Color.DeepSkyBlue1))
+                    .UseConverter(t =>
+                        $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd}) | Budget: {t.PlannedBudget}")
+                    .AddChoices(updatedTrips)
+            );
+
+            var rawBudget = AnsiConsole.Prompt(
+                new TextPrompt<string>("Enter the new budget:")
+                    .Validate(input =>
+                    {
+                        if (!decimal.TryParse(input, out var parsed))
+                        {
+                            Logg.Log($"Invalid budget input: '{input}'. Expected a numeric value.");
+                            return ValidationResult.Error("[red]You must enter a number.[/]");
+                        }
+
+                        if (parsed < 0)
+                        {
+                            Logg.Log($"Invalid budget input: '{input}'. Budget must be a positive number.");
+                            return ValidationResult.Error("[red]Budget must be a positive number[/]");
+                        }
+
+                        return ValidationResult.Success();
+                    })
+            );
+
+            var newBudget = decimal.Parse(rawBudget);
+
+            var confirm = AnsiConsole.Prompt(
+                new SelectionPrompt<string>()
+                    .Title(
+                        $"Do you want to update the budget for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] " +
+                        $"from {selectedTrip.PlannedBudget} to [bold]{newBudget}[/]?"
+                    )
+                    .AddChoices("✅ Yes", "❌ No")
+            );
+
+            if (confirm == "❌ No")
+            {
+                AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
+                Logg.Log("Budget update cancelled by user.");
+                UI.Pause();
+                return;
+            }
+
+            selectedTrip.PlannedBudget = newBudget;
+
+            AnsiConsole.MarkupLine(
+                $"[green]✅ Budget updated for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]![/]"
+            );
+            UI.Pause();
+        }
+
+        // Metod för att uppdatera kostnad
+        public void UpdateCost(List<Trip> updatedTrips)
+        {
+            if (updatedTrips is null || updatedTrips.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
+                Logg.Log($"No trips available to update cost for user '{username}'.");
+                UI.Pause();
+                return;
+            }
+
+            var selectedTrip = AnsiConsole.Prompt(
+                new SelectionPrompt<Trip>()
+                    .Title("[bold]Select a trip to update its cost:[/]")
+                    .HighlightStyle(new Style(Color.DeepSkyBlue1))
+                    .UseConverter(t =>
+                        $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd}) | Cost: {t.Cost}")
+                    .AddChoices(updatedTrips)
+            );
+
+            var rawCost = AnsiConsole.Prompt(
+                new TextPrompt<string>("Enter the new cost:")
+                    .Validate(input =>
+                    {
+                        if (!decimal.TryParse(input, out var parsed))
+                        {
+                            Logg.Log($"Invalid cost input: '{input}'. Expected a numeric value.");
+                            return ValidationResult.Error("[red]You must enter a number.[/]");
+                        }
+
+                        if (parsed < 0)
+                        {
+                            Logg.Log($"Invalid cost input: '{input}'. Cost must be a positive number.");
+                            return ValidationResult.Error("[red]Cost must be a positive number[/]");
+                        }
+
+                        return ValidationResult.Success();
+                    })
+            );
+
+            var newCost = decimal.Parse(rawCost);
+
+            var confirm = AnsiConsole.Prompt(
+                new SelectionPrompt<string>()
+                    .Title(
+                        $"Do you want to update the total cost for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] " +
+                        $"from {selectedTrip.Cost} to [bold]{newCost}[/]?"
+                    )
+                    .AddChoices("✅ Yes", "❌ No")
+            );
+
+            if (confirm == "❌ No")
+            {
+                AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
+                Logg.Log($"User '{username}' cancelled cost update for trip to '{selectedTrip.City}, {selectedTrip.Country}'.");
+                UI.Pause();
+                return;
+            }
+
+            selectedTrip.Cost = newCost;
+
+            AnsiConsole.MarkupLine(
+                $"[green]✅ Cost updated for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]![/]"
+            );
+            UI.Pause();
+        }
+
+        // Metod för att uppdatera antal resenärer
+        public void UpdateNumberOfPassengers(List<Trip> updatedTrips)
+        {
+            if (updatedTrips is null || updatedTrips.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]No trips to update.[/]");
+                Logg.Log($"No trips available to update number of passengers for user '{username}'.");
+                UI.Pause();
+                return;
+            }
+
+            var selectedTrip = AnsiConsole.Prompt(
+                new SelectionPrompt<Trip>()
+                    .Title("[bold]Select a trip to update its number of passengers:[/]")
+                    .HighlightStyle(new Style(Color.DeepSkyBlue1))
+                    .UseConverter(t => $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd}) | Passengers: {t.NumberOfPassengers}")
+                    .AddChoices(updatedTrips)
+            );
+
+            var newNumberOfPassengers = AnsiConsole.Prompt(
+                new TextPrompt<int>("Enter the new number of passengers:")
+                    .Validate(s => s >= 1
+                        ? ValidationResult.Success()
+                        : ValidationResult.Error("[red]Number of passengers must be at least 1[/]"))
+            );
+
+            var confirm = AnsiConsole.Prompt(
+                new SelectionPrompt<string>()
+                    .Title(
+                        $"Do you want to update the number of passangers for [bold]{selectedTrip.City}, {selectedTrip.Country}[/] from {selectedTrip.NumberOfPassengers} to [bold]{newNumberOfPassengers}[/]?"
+                    )
+                    .AddChoices("✅ Yes", "❌ No")
+            );
+
+            if (confirm == "❌ No")
+            {
+                AnsiConsole.MarkupLine("[grey]Update cancelled.[/]");
+                Logg.Log($"User '{username}' cancelled number of passengers update for trip to '{selectedTrip.City}, {selectedTrip.Country}'.");
+                UI.Pause();
+                return;
+            }
+
+            selectedTrip.NumberOfPassengers = newNumberOfPassengers;
+            AnsiConsole.MarkupLine($"[green]✅ Number of passengers updated for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]![/]");
+            UI.Pause();
+        }
+
+        // Metod för att radera resa
+        public void DeleteTrip(List<Trip> updatedTrips)
+        {
+            if (updatedTrips is null || updatedTrips.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]No trips to delete.[/]");
+                Logg.Log($"No trips available to delete for user '{username}'.");
+                UI.Pause();
+                return;
+            }
+
+            var selectedTrip = AnsiConsole.Prompt(
+                new SelectionPrompt<Trip>()
+                    .Title("[bold red]Select a trip to [underline]delete[/]:[/]")
+                    .HighlightStyle(new Style(Color.Red))
+                    .UseConverter(t => $"{t.City}, {t.Country} ({t.StartDate:yyyy-MM-dd} - {t.EndDate:yyyy-MM-dd})")
+                    .AddChoices(updatedTrips)
+            );
+
+            var confirm = AnsiConsole.Prompt(
+                new SelectionPrompt<string>()
+                    .Title($"Are you sure you want to delete the trip for [bold]{selectedTrip.City}, {selectedTrip.Country}[/]?")
+                    .AddChoices("✅ Yes", "❌ No")
+            );
+
+            if (confirm == "❌ No")
+            {
+                AnsiConsole.MarkupLine("[grey]Delete cancelled.[/]");
+                Logg.Log($"User '{username}' cancelled deletion of trip to '{selectedTrip.City}, {selectedTrip.Country}'.");
+                UI.Pause();
+                return;
+            }
+
+            updatedTrips.Remove(selectedTrip);
+            store.Save(updatedTrips);
+
+            AnsiConsole.MarkupLine(
+                $"[green]✅ Trip [bold]{selectedTrip.City}, {selectedTrip.Country}[/] has been deleted successfully![/]"
+            );
+            UI.Pause();
+        }
+
 
         // ============================================================
         // ===   HÄMTA BESÖKTA LÄNDER FÖR VÄRLDSKARTAN              ===

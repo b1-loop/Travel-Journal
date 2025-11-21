@@ -31,6 +31,7 @@ namespace Travel_Journal
             catch (Exception ex)
             {
                 UI.Error($"Failed to save data: {ex.Message}");
+                Logg.Log($"Error saving data to {_filePath}: {ex}");
             }
         }
 
@@ -48,6 +49,7 @@ namespace Travel_Journal
             catch (Exception ex)
             {
                 UI.Error($"Failed to load data: {ex.Message}");
+                Logg.Log($"Error loading data from {_filePath}: {ex}");
                 return new List<T>();
             }
         }

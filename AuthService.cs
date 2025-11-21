@@ -1,4 +1,5 @@
-﻿using Spectre.Console;
+﻿using Microsoft.Extensions.Logging;
+using Spectre.Console;
 using System;
 using System.Threading.Tasks;
 using Travel_Journal.Email;
@@ -21,6 +22,7 @@ namespace Travel_Journal
             if (AccountStore.Exists(username))
             {
                 UI.Warn("User already exists!");
+                Logg.Log($"Attempted registration with existing username {username}");
                 return false;
             }
 
@@ -29,11 +31,13 @@ namespace Travel_Journal
             if (!acc.CheckUserName(username))
             {
                 UI.Error("Username must be at least 1 character long.");
+                Logg.Log($"User {username} trying to register account with less than 1 character");
                 return false;
             }
             if (!acc.CheckPassword(password))
             {
                 UI.Error("Password requirements: min 6 chars, uppercase, lowercase, number, special.");
+                Logg.Log($"Password for {username} doesnt meet the requirements");
                 return false;
             }
 
@@ -66,6 +70,7 @@ namespace Travel_Journal
                 catch (Exception ex)
                 {
                     UI.Error("Failed to send verification email: " + ex.Message);
+                    Logg.Log("Failed to send verification email");
                     sent = false;
                 }
             });
@@ -76,7 +81,7 @@ namespace Travel_Journal
             for (int attempt = 1; attempt <= 3; attempt++)
             {
                 var code = AnsiConsole.Prompt(
-                    new TextPrompt<string>($"[yellow]Enter the 6-digit code (attempt {attempt}/3):[/] ")
+                    new TextPrompt<string>($"[yellow]Enter the 6-digit code (attempt {attempt}/3):[/]")
                         .PromptStyle("white")
                 );
 
@@ -86,11 +91,13 @@ namespace Travel_Journal
                     break;
                 }
                 UI.Warn("Wrong code.");
+                Logg.Log("Wrong verification-code");
             }
 
             if (!verified)
             {
                 UI.Error("Email not verified.");
+                Logg.Log("Email not verified.");
                 _twoFactor.ClearPending(acc);
                 return false;
             }
@@ -170,6 +177,7 @@ namespace Travel_Journal
                     catch (Exception ex)
                     {
                         UI.Error("Email send error: " + ex.Message);
+                        Logg.Log($"[Email Error] Failed to send email: {ex.Message}\n{ex.StackTrace}");
                         sent = false;
                     }
                 });
@@ -188,10 +196,12 @@ namespace Travel_Journal
                         UI.Success($"Logged in as [bold]{username}[/]! ✈️");
                         return acc;
                     }
-                    UI.Warn("Wrong code.");
+                    // 🔥Logga BARA felförsök
+                    Logg.Log($"2FA failed attempt {attempt}/3 for user '{username}'.");
                 }
 
                 UI.Error("Too many attempts.");
+                Logg.Log("Too many 2FA code attempts.");
                 _twoFactor.ClearPending(acc);
                 return null;
             }
@@ -207,6 +217,7 @@ namespace Travel_Journal
             if (!string.Equals(newPassword, confirmPassword, StringComparison.Ordinal))
             {
                 UI.Error("Passwords does not match.");
+                Logg.Log($"Password reset failed for '{username}': Passwords did not match.");
                 return;
             }
 
@@ -214,18 +225,21 @@ namespace Travel_Journal
             if (acc == null)
             {
                 UI.Error("Unknown username.");
+                Logg.Log($"Password reset failed: Unknown username '{username}'.");
                 return;
             }
 
             if (!string.Equals(acc.RecoveryCode, recoveryCode, StringComparison.Ordinal))
             {
                 UI.Error("Wrong recovery code.");
+                Logg.Log($"Password reset failed for '{username}': Wrong recovery code.");
                 return;
             }
 
             if (!acc.CheckPassword(newPassword))
             {
                 UI.Error("New password does not meet the requirements.");
+                Logg.Log($"Password reset failed for '{username}': Password did not meet requirements.");
                 return;
             }
 

@@ -1,9 +1,10 @@
-﻿using System;
+﻿using Spectre.Console;
+using System;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Spectre.Console;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Travel_Journal
 {
@@ -24,8 +25,14 @@ namespace Travel_Journal
         {
             // Hämta API-nyckeln från datorns miljövariabler
             // (Om den inte finns kastas ett felmeddelande)
-            _apiKey = Environment.GetEnvironmentVariable("API_KEY")
-                ?? throw new InvalidOperationException("❌ API_KEY not found. Set it with: setx API_KEY \"sk-...\"");
+            var key = Environment.GetEnvironmentVariable("API_KEY");
+            if (key == null)
+            {
+                Logg.Log("API_KEY environment variable missing.");
+                throw new InvalidOperationException("❌API_KEY not found.Set it with: setx API_KEY 'sk-....' ");
+            }
+
+            _apiKey = key;
 
             // Skapa en ny HTTP-klient som ska prata med OpenAI:s API
             _httpClient = new HttpClient
@@ -43,16 +50,43 @@ namespace Travel_Journal
             // Här bygger vi själva frågan (prompten) som skickas till AI:n
             // Den innehåller all information användaren angivit
             var prompt = $@"
-You are a travel planner AI. 
-Suggest one travel destination and a short itinerary based on:
-- Budget: {budget} SEK
-- Trip type: {tripType}
-- Duration: {durationDays} days
-Give me 3 parts: 
-1️⃣ Destination  
-2️⃣ Why it's perfect for this traveler  
-3️⃣ Suggested activities.";
+You are an experienced travel planner AI.
 
+Your task:
+Suggest exactly ONE travel destination that fits the traveler's budget, trip type and duration.
+Assume the budget ({budget} SEK) is the TOTAL budget for the whole trip (flights/transport, accommodation and activities).
+Only suggest destinations that are realistic within this budget.
+
+Traveler info:
+Budget: {budget} SEK
+Trip type: {tripType}
+Duration: {durationDays} days
+
+Write the answer in clear English and use markdown with this exact structure:
+
+1) A short intro (2–3 sentences) explaining the overall idea of the trip.
+2) A section called Destination:
+   
+Name of city and country
+Very short explanation why this destination fits the budget and trip type.
+
+3) A section called Itinerary with {durationDays} days:
+   For each day, use this format:
+
+   Day X: Title of the day
+   Morning: ...
+   Afternoon: ...
+   Evening: ...
+
+4) A section called Why this trip fits the traveler:
+   
+2–4 bullet points that connect the destination and activities to the budget and trip type.
+
+Important:
+Keep the tone friendly and inspiring, but not cheesy.
+Stay within a realistic budget for someone with {budget} SEK.
+Do not ask the user follow-up questions.
+";
             // Spinner-animation i terminalen (visar att AI:n "tänker")
             return await AnsiConsole.Status()
                 .StartAsync("🧠 Thinking of your next adventure...", async ctx =>
@@ -103,6 +137,7 @@ Give me 3 parts:
                         // Om något går fel (t.ex. ingen internetanslutning, API-fel, timeout)
                         // så visas ett tydligt felmeddelande i terminalen.
                         UI.Error($"AI request failed: {ex.Message}");
+                        Logg.Log($"AITravelAssistant error: {ex}");
 
                         // Returnera en standardtext istället för att krascha
                         return "Could not generate a travel suggestion.";
@@ -117,12 +152,12 @@ Give me 3 parts:
             UI.Transition("AI Travel Assistant 🤖✈️");
 
             // Be användaren om resepreferenser
-            var budgetstring = UI.AskWithBack("What is your [bold]budget[/]?");
+            var budgetstring = UI.AskWithBack("What is your [bold]budget[/] in SEK?");
             if (budgetstring == null)
                 return; // eller gå till föregående meny
             decimal budget = decimal.Parse(budgetstring);
             var type = AnsiConsole.Ask<string>("What kind of [blue]trip[/] do you want? (e.g. city, beach, adventure, culture)");
-            var days = AnsiConsole.Ask<int>("How many [yellow]days[/] do you plan to travel?");
+            var days = UI.AskInt("How many [yellow]days[/] do you plan to travel?");
 
             // Skapa AI-klassen och hämta förslag från OpenAI
             var ai = new AITravelAssistant();
