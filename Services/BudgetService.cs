@@ -1,8 +1,11 @@
 ﻿using Spectre.Console;
 using System;
 using System.Linq;
+using Travel_Journal.Data;
+using Travel_Journal.Models;
+using Travel_Journal.UIServices;
 
-namespace Travel_Journal
+namespace Travel_Journal.Services
 {
     public class BudgetService
     {

@@ -3,15 +3,17 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Travel_Journal.Models;
 
-namespace Travel_Journal
+namespace Travel_Journal.Data
 {
     public static class AccountStore 
     {
-        private static List<Account> accounts = new(); 
+        private static List<Account> accounts = new();
+
+        internal static object Accounts;
 
         public static void LoadWithProgress()
         {
@@ -40,7 +42,7 @@ namespace Travel_Journal
                     for (int i = 0; i <= 100; i += 25)
                     {
                         t.Value = i; // Uppdaterar progressens nuvarande värde
-                        System.Threading.Thread.Sleep(60); // Väntar 60 millisekunder för visuell effekt
+                        Thread.Sleep(60); // Väntar 60 millisekunder för visuell effekt
                     }
 
                     // Om användarfilen existerar, läs in den
@@ -90,6 +92,11 @@ namespace Travel_Journal
 
             // Om kontot finns (index >= 0), ersätt det gamla kontot med det nya
             if (idx >= 0) accounts[idx] = acc;
+        }
+
+        public static List<Account> GetAll()
+        {
+            return accounts;
         }
 
     }

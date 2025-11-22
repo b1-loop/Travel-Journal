@@ -1,8 +1,11 @@
 ﻿using Spectre.Console;
 using System;
 using System.Threading.Tasks;
+using Travel_Journal.Data;
+using Travel_Journal.Models;
+using Travel_Journal.UIServices;
 
-namespace Travel_Journal
+namespace Travel_Journal.Services
 {
     /// <summary>
     /// UserSession körs när en användare är inloggad.

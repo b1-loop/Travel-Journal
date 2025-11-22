@@ -2,10 +2,12 @@
 using Spectre.Console;
 using System;
 using System.Threading.Tasks;
+using Travel_Journal.Data;
 using Travel_Journal.Email;
-using Travel_Journal.Security;
+using Travel_Journal.Models;
+using Travel_Journal.UIServices;
 
-namespace Travel_Journal
+namespace Travel_Journal.Services
 {
     public class AuthService
     {
@@ -15,7 +17,29 @@ namespace Travel_Journal
         {
             // Standard: SMTP via miljövariabler
             _twoFactor = new TwoFactorService(new SmtpEmailSender());
+            SeedAdmin();
         }
+
+        private void SeedAdmin()
+        {
+            var all = AccountStore.GetAll();
+            if (all.Any(all => all.IsAdmin))
+                return;
+            var acc = new Account
+            {
+                UserName = "Admin",
+                Password = "Admin123!", // helst byt till något från config
+                Email = "admin@example.com",
+                EmailVerified = false,      // du kan köra din vanliga verifieringsprocess sen om du vill
+                TwoFactorEnabled = false,
+                RecoveryCode = Util.GenerateRecoveryCode(),
+                CreatedAt = DateTime.UtcNow,
+                IsAdmin = true
+            };
+            AccountStore.Add(acc);
+            AccountStore.Save();
+        }
+
         // === NY === Registrering med e-postverifiering (Spectre + 2FA-val)
         public async Task<bool> RegisterWithEmailVerificationAsync(string username, string password)
         {
