@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Travel_Journal.Models;
+using Travel_Journal.UIServices;
 
 
 namespace Travel_Journal

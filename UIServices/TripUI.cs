@@ -281,7 +281,7 @@ namespace Travel_Journal.UIServices
             UI.Transition($"All Trips for {_service.UserName} 🌍");
 
             // Hämta datan från servicen
-            var trips = _service.GetAllTrips();
+            var trips = _service.GetTrips();
 
             if (!trips.Any())
             {
@@ -364,7 +364,7 @@ namespace Travel_Journal.UIServices
             Action<Trip, T> updateAction) // Funktion som sätter det nya värdet
         {
             // Hämta data via servicen
-            var trips = _service.GetAllTrips();
+            var trips = _service.GetTrips();
 
             if (trips == null || !trips.Any())
             {
@@ -562,7 +562,7 @@ namespace Travel_Journal.UIServices
         // DeleteTrip är lite speciell (tar bort istället för uppdaterar), så den ligger separat
         public void DeleteTrip()
         {
-            var trips = _service.GetAllTrips();
+            var trips = _service.GetTrips();
             if (!trips.Any())
             {
                 AnsiConsole.MarkupLine("[yellow]No trips to delete.[/]");

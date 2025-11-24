@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Spectre.Console;
 using Travel_Journal.Data;
 using Travel_Journal.Models;
+using Travel_Journal.UIServices;
 
 namespace Travel_Journal.Services
 {
@@ -189,7 +191,7 @@ namespace Travel_Journal.Services
             };
 
             trips.Add(newTrip);
-            SaveTrips();
+            Save();
 
             UI.Success($"Trip to {city}, {country} added successfully!");
             UI.Pause();
@@ -420,7 +422,7 @@ namespace Travel_Journal.Services
             };
 
             trips.Add(newTrip);
-            SaveTrips();
+            Save();
 
             NotificationService.ShowBudgetStatus( //Ropar på metoden ShowBudgetStatus från klassen NotificationService
                                                   //för att informera jämfört med kostnaden
@@ -458,7 +460,7 @@ namespace Travel_Journal.Services
             }
 
 
-            UserSession.Pause();
+            UI.Pause();
         }
 
         // === Visar alla resor i tabellform ===
