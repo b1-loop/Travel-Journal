@@ -1,8 +1,6 @@
 ﻿
 using System;
 using Spectre.Console;
-using Travel_Journal.Models;     // för Trip
-using Travel_Journal.UIServices; // för UI-klassen
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
