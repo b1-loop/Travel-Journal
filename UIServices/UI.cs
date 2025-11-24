@@ -365,5 +365,143 @@ namespace Travel_Journal.UIServices
             Console.ReadLine();
             AnsiConsole.Clear();
         }
+        public static void ShowNotification(string message, NotificationType type)
+        {
+            // Den här metoden är "ingången" från resten av koden.
+            // När du t.ex. kallar ShowBudgetStatus → UI.ShowNotification(...) → här.
+
+            switch (type)
+            {
+                case NotificationType.Info:
+                    // 🔵 Visa en INFO-popup (fullskärmspanel)
+                    ShowInfoPopup(message);
+                    break;
+
+                case NotificationType.Success:
+                    // 🟢 Visa en SUCCESS-popup (fullskärmspanel)
+                    ShowSuccessPopup(message);
+                    break;
+
+                case NotificationType.Warning:
+                    // 🔴 Visa en WARNING-popup (fullskärmspanel)
+                    ShowWarningPopup(message);
+                    break;
+
+                default:
+                    // Om något annat skulle skickas in kan vi defaulta till info
+                    ShowInfoPopup(message);
+                    break;
+            }
+        }
+        public static void ShowPreviousTripWithBudget(Trip trip, string budgetMessage, NotificationType type)
+        {
+            // 1. Bygg vänsterpanel: själva resan
+            var leftPanel = BuildPreviousTripPanel(trip);
+
+            // 2. Bygg högerpanel beroende på notis-typ
+            Panel rightPanel = type switch
+            {
+                NotificationType.Info => BuildInfoPanel(budgetMessage),
+                NotificationType.Success => BuildSuccessPanel(budgetMessage),
+                NotificationType.Warning => BuildWarningPanel(budgetMessage),
+                _ => BuildInfoPanel(budgetMessage)
+            };
+
+            // 3. Lägg dem bredvid varandra med Columns
+            var columns = new Columns(leftPanel, rightPanel)
+            {
+                Expand = true // Försök använda hela bredden i terminalen
+            };
+
+            AnsiConsole.Clear();      // Rensa skärmen
+            AnsiConsole.Write(columns); // Skriv ut båda panelerna sida vid sida
+        }
+        public static void ShowWarningPopup(string message)
+        {
+            ShowPopup(
+                headerMarkup: "[red]⚠ WARNING ⚠[/]",
+                bodyMarkup: $"[yellow]{message}[/]",
+                borderColor: Color.Red
+            );
+        }
+
+        // 🟢 SUCCESS
+        public static void ShowSuccessPopup(string message)
+        {
+            ShowPopup(
+                headerMarkup: "[green]✔ SUCCESS ✔[/]",
+                bodyMarkup: $"[green]{message}[/]",
+                borderColor: Color.Green
+            );
+        }
+
+        // 🔵 INFO
+        public static void ShowInfoPopup(string message)
+        {
+            ShowPopup(
+                headerMarkup: "[blue]ℹ INFO ℹ[/]",
+                bodyMarkup: $"[cyan]{message}[/]",
+                borderColor: Color.Blue
+            );
+        }
+
+        // 🔧 Gemensam stil för alla popups
+        private static void ShowPopup(string headerMarkup, string bodyMarkup, Color borderColor)
+        {
+            var panel = new Panel(bodyMarkup)
+                .Header(headerMarkup)
+                .Border(BoxBorder.Double)
+                .BorderStyle(new Style(borderColor));
+
+            AnsiConsole.Clear();
+            AnsiConsole.Write(panel);
+            AnsiConsole.MarkupLine("\n[grey]Press ENTER to continue...[/]");
+            Console.ReadLine();
+        }
+
+        //panel-Builders
+        public static Panel BuildWarningPanel(string message)
+        {
+            return new Panel($"[yellow]{message}[/]")
+                .Header("[red]⚠ WARNING ⚠[/]")
+                .Border(BoxBorder.Rounded)
+                .BorderStyle(new Style(Color.Red));
+        }
+
+        //en builder för själva Previous Trip-panelen
+        public static Panel BuildSuccessPanel(string message)
+        {
+            return new Panel($"[green]{message}[/]")
+                .Header("[green]✔ SUCCESS ✔[/]")
+                .Border(BoxBorder.Rounded)
+                .BorderStyle(new Style(Color.Green));
+        }
+        public static Panel BuildPreviousTripPanel(Trip trip)
+        {
+            // Bygg samma layout som du redan visar i din Previous Trip-ruta
+            return new Panel($@"
+                [bold]Country:[/]    {trip.Country}
+                [bold]City:[/]       {trip.City}
+                [bold]Budget:[/]     {trip.PlannedBudget}
+                [bold]Dates:[/]      {trip.StartDate:yyyy-MM-dd} → {trip.EndDate:yyyy-MM-dd}
+                [bold]Passengers:[/] {trip.NumberOfPassengers}
+                [bold]Cost:[/]       {trip.Cost}
+                [bold]Rating:[/]     {trip.Score}/5
+                ")
+                .Header("[white]Add Previous Trip[/]")
+                .Border(BoxBorder.Rounded)
+                .BorderStyle(new Style(Color.Grey));
+        }
+
+        public static Panel BuildInfoPanel(string message)
+        {
+            return new Panel($"[cyan]{message}[/]")
+                .Header("[blue]ℹ INFO ℹ[/]")
+                .Border(BoxBorder.Rounded)
+                .BorderStyle(new Style(Color.Blue));
+        }
     }
 }
+
+    
+

@@ -216,6 +216,15 @@ namespace Travel_Journal.Services
 
             UI.Success("Your dream vacation has been saved!"); // Bekräftelse
         }
-    }
+        
+        }
+
+
+
+
 }
+
+
+    
+
     

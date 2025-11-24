@@ -234,6 +234,7 @@ namespace Travel_Journal.UIServices
             };
 
             SaveTripSafe(newTrip, $"Previous trip to {city}, {country} saved successfully!");
+            NotificationService.ShowBudgetStatusForTrip(newTrip);
         }
 
         /// <summary>
