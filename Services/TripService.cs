@@ -292,7 +292,7 @@ namespace Travel_Journal.Services
                     cost = cst.Value;
                     step++;
 
-                   
+
                 }
 
                 // === STEG 4 — AVLÄSNING DATUM (SEPARAT) ===
@@ -424,44 +424,14 @@ namespace Travel_Journal.Services
             trips.Add(newTrip);
             Save();
 
-            NotificationService.ShowBudgetStatus( //Ropar på metoden ShowBudgetStatus från klassen NotificationService
-                                                  //för att informera jämfört med kostnaden
-                       goalAmount: budget,
-                       currentAmount: cost,
-                       contextText: $"resan till {city}, {country}"
-                      );
+           //Anropar showbudget metod för popup
 
-            UI.Success($"Previous trip to {city}, {country} saved successfully!");
-            UI.Pause();
-            UI.Success($"Previous trip to {city}, {country} saved successfully!");//bekräftelse att resan har sparat i json
-            // Visa popup *bara om* du gått över budget
-            // Popup baserat på budgetutfall
-            if (cost > budget)
-            {
-                // ÖVER budget → Warning
-                UI.ShowWarningPopup(
-                    $"Du har överskridit din budget med {cost - budget} SEK för resan till {city}, {country}."
-                );
-            }
-            else if (cost == budget)
-            {
-                // EXAKT budget → Success
-                UI.ShowSuccessPopup(
-                    $"Du har precis nått din mål-budget för resan till {city}, {country}."
-                );
-            }
-            else // cost < budget
-            {
-                // UNDER budget → Info
-                decimal remaining = budget - cost;
-                UI.ShowInfoPopup(
-                    $"Du är {remaining} SEK under din mål-budget för resan till {city}, {country}."
-                );
-            }
+            NotificationService.ShowBudgetStatusForTrip(newTrip);
 
 
             UI.Pause();
         }
+
 
         // === Visar alla resor i tabellform ===
         public void ShowAllTrips()
@@ -478,11 +448,11 @@ namespace Travel_Journal.Services
 
             // --- 1. Skapa kategorier ---
             var categories = new List<(string Title, Color Color, List<Trip> List)>
-    {
+            {
         ("Ongoing Trips",   Color.Yellow, trips.Where(t => !t.IsUpcoming && !t.IsCompleted).OrderBy(t => t.StartDate).ToList()),
         ("Upcoming Trips",  Color.Green,  trips.Where(t => t.IsUpcoming).OrderBy(t => t.StartDate).ToList()),
         ("Completed Trips", Color.Grey,   trips.Where(t => t.IsCompleted).OrderBy(t => t.StartDate).ToList())
-    };
+            };
 
             // --- 2. Loopa och visa varje kategori ---
             foreach (var (title, color, tripList) in categories)
@@ -645,3 +615,4 @@ namespace Travel_Journal.Services
         
     }
 }
+

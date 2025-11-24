@@ -1,4 +1,8 @@
-﻿using System;
+﻿
+using System;
+using Spectre.Console;
+using Travel_Journal.Models;     // för Trip
+using Travel_Journal.UIServices; // för UI-klassen
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,78 +10,72 @@ using System.Threading.Tasks;
 using Travel_Journal.Models;
 using Travel_Journal.UIServices;
 
-
 namespace Travel_Journal
 {
     public static class NotificationService
     {
+        // 🔒 PRIVAT hjälparmetod
+        // Tar emot mål, aktuellt värde och text om resan
+        // Returnerar: färdigt meddelande + vilken typ av notis
+        private static (string message, NotificationType type) BuildBudgetStatusMessage(
+            decimal goalAmount,
+            decimal currentAmount,
+            string contextText)
+        {
+            decimal difference = goalAmount - currentAmount; // skillnaden mellan mål och nuvarande
+
+            if (difference > 0)
+            {
+                // UNDER budget → Info (blå)
+                string message =
+                    $"You are now {difference} away from your target budget for {contextText}.";
+                return (message, NotificationType.Info);
+            }
+            else if (difference == 0)
+            {
+                // EXAKT på målet → Success (grön)
+                string message =
+                    $"You have just reached your target budget for {contextText}.";
+                return (message, NotificationType.Success);
+            }
+            else
+            {
+                // ÖVER budget → Warning (röd)
+                decimal overAmount = Math.Abs(difference);
+                string message =
+                    $"You have exceeded your budget by {overAmount} for {contextText}.";
+                return (message, NotificationType.Warning);
+            }
+        }
+
+        // 📌 1) Allmän budgetnotis (popup mitt på skärmen)
         public static void ShowBudgetStatus(decimal goalAmount, decimal currentAmount, string contextText)
-        // Metod som visar budget-status som en notis
-        // goalAmount     = målets totalbudget
-        // currentAmount  = nuvarande sparat/kostnad
-        // contextText    = text för vilken resa (t.ex. "resan till Rom")
         {
-            decimal difference = goalAmount - currentAmount; //räknar skillnaden mellan mål och nuvarande kostnad
-            if (difference > 0) //om skillnaden är positiv-vi är under målet
-            {
-                string message = $"Du är nu {difference} ifrån din mål-budget för {contextText}.";//text för info notisen
+            // Använd hjälparmetoden för att ta fram text + typ
+            var (message, type) = BuildBudgetStatusMessage(goalAmount, currentAmount, contextText);
 
-                UI.ShowNotification(message, NotificationType.Info);//anropar UI för att skriva ut notisen snyggt(texten, typen)
-            }
-            else if (difference == 0)//om skillnaden är precis 0 då har vi nått målet
-            {
-                string message = $"Du har precis nått din mål-budget för contextText";//text för sucess notiden
-
-                UI.ShowNotification(message, NotificationType.Sucess);
-            }
-            else //annars difference<0 då har vi gått över målet
-            {
-                //difference < 0 ? -difference : difference;-ett annat sätt att göra
-                decimal overAmount = Math.Abs(difference);// Gör om negativt värde till positivt (hur mycket över)
-
-                string message = $"Du har överskridit din budget med {overAmount} för {contextText}.";//text för varningen
-
-                UI.ShowNotification(message, NotificationType.Warning);
-
-            }
-
+            // Visa vanlig notis via UI (den använder popup)
+            UI.ShowNotification(message, type);
         }
-        public static void ShowTripCreated(Trip trip)
+
+        // 📌 2) Budgetstatus för en specifik resa – två kolumner
+        public static void ShowBudgetStatusForTrip(Trip trip)
         {
-            string message = $"Din resa till {trip.City}, {trip.Country} har skapats.";
-            UI.ShowNotification(message, NotificationType.Sucess);
+            // Skapa en tydlig beskrivning av resan
+            string contextText = $"Trip to {trip.City}, {trip.Country}";
+
+            // Använd samma logik som ovan
+            var (message, type) = BuildBudgetStatusMessage(
+                trip.PlannedBudget,
+                trip.Cost,
+                contextText);
+
+            // Här visar vi TVÅ paneler: trip-panel (vänster) + budget-panel (höger)
+            // (förutsätter att du har UI.ShowPreviousTripWithBudget implementerad)
+            UI.ShowPreviousTripWithBudget(trip, message, type);
         }
-        public static void ShowTripCompleted(Trip trip)
-        {
-            string message = $"Resan till {trip.City}, {trip.Country} är nu markerad som avslutad";
-            UI.ShowNotification(message, NotificationType.Info);
 
-        }
-        // public static void ShowActivityAdded(Trip trip, activityName)
-        //{
-        // string message = $"Aktiviteten {activityName} har lagts till på resan till {trip.Country}";
-        // UI.ShowNotification(message , NotificationType.Info);
-        // }
+        // ✅ Övriga notiser (behåll, små och tydliga)
 
-        public static void ShowBudgetStatusForTrip(Trip trip) //Metod som visar budget-status för en specifik resa
-        {
-            decimal goalAmount = trip.PlannedBudget;//målbudget för resan
-            decimal currentAmount = trip.Cost;//nuvarande kostnad
-            string contextText = $"Resan till {trip.City}, {trip.Country}";//text som beskriver resan-används i notistexten
-            NotificationService.ShowBudgetStatus(goalAmount, currentAmount, contextText); //anropar vår notificationsservice med alla värden
-        }
-        // public void UpdateTripCost(Trip trip)
-        // {
-        //   Console.WriteLine("Ange ny kostnad för resan:");
-        //  string input = Console.ReadLine()!;
-        // decimal newCost = decimal.Parse(input);
-
-        // trip.Cost = newCost;
-        // ShowBudgetStatusForTrip(trip);// Anropar vår metod som i sin tur anropar NotificationService
-
-       
     }
 }
-
-
-
