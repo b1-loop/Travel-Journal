@@ -9,8 +9,6 @@ namespace Travel_Journal.Models
     public class Account
     {
         public string UserName { get; set; } = string.Empty; // Användarnamn
-
-        [System.Text.Json.Serialization.JsonIgnore] // Ignorera vid JSON-serialisering raden nedan
         public string Password { get; set; } = string.Empty; // Lösenord
         public DateTime CreatedAt { get; set; } = default; // Tid kontot skapades
         public decimal Savings { get; set; } = 0m; // Sparkonto
