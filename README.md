@@ -1,51 +1,66 @@
-# Travel Journal
-✈️ Travel Journal – Projektspecifikation
-🧭 Översikt
-Syfte:
-Att hjälpa användare att planera, spara till och dokumentera sina resor. Produkten ska inspirera till nya upplevelser och ge användaren kontroll över sin resehistorik, ekonomi och framtida mål.
+✨ TRAVEL JOURNAL 
+(Planera • Spara • Res • Minns)
+________________________________________
+🧭 1. Översikt
+Travel Journal är en applikation som hjälper användare att:
+•	🌍 Planera nya resor
+•	💰 Spara till sina drömresor
+•	📝 Dokumentera både nya och gamla resor
+•	📊 Ta del av statistik
+Användaren kan även lägga in äldre resor retroaktivt för att bygga en komplett resehistorik.
+________________________________________
+👥 2. User Journeys
+2.1 ✈️ Planera en resa
+•	🗺️ Välj destination
+•	📅 Ange datum
+•	💳 Sätt budget
+•	🧠 Få rekommendationer
+•	📥 Stöd för framtida och redan genomförda resor
+2.2 💰 Spara till en resa
+•	🎯 Sätt sparmål
+•	📉 Visa återstående belopp
+2.3 📝 Föra resejournal
+•	⭐ Betygsätt resan
+•	💬 Lägg till kommentarer
+•	🗃️ Spara minnen
+•	📜 Lägg in äldre resor från tidigare år
+•	📊 Se statistik
+________________________________________
+⚙️ 3. Funktionalitet
+3.1 🗺️ Resmålshantering
+•	➕ Lägg till destination (land + stad)
+•	📅 Datum – stöd för gamla och nya resor
+•	💵 Kostnad, budget 
+•	👥 Antal personer
+•	✏️ Redigera eller ta bort resor
+•	🔎 Filtrera efter datum, pris, destination och kategori
+3.2 💰 Budget & Sparande
+•	🎯 Sätt en budget
+•	⚠️ Budgetvarningar
+•	👛 Sammanställning även för äldre resor
+3.3 📊 Historik & Statistik
+•	📚 Lista resehistorik
+•	🕰️ Lägg in resor bakåt i tiden
+•	⭐ Uppdatera recensioner
+•	🏆 Topplistor
+•	📈 Statistik för både gamla och nya resor
+3.4 ⭐ Feedback & Recensioner
+•	⭐ Betygsätt (1–5 stjärnor)
+•	✍️ Skriv kommentarer
+________________________________________
+🧑‍💻 4. Användarhantering
+4.1 📥 Välkomstmeny
+•	🔐 Logga in
+•	🆕 Registrera
+•	❓ Glömt lösenord (framtida)
+4.2 👤 När användaren är inloggad
+•	➕ Lägg till resa (även tidigare resor)
+•	📅 Visa kommande resor
+•	📚 Visa historik
+•	💰 Se budgetöversikt
+•	📊 Se statistik 
+•	🆘 Support
+•	🌎 Världskarta
+•	🚪 Logga ut
+________________________________________
 
-👥 Primära användarresor (User Journeys)
-• Planera en resa – ange plats, tid, budget och få matchande förslag.
-• Spara till en resa – sätt upp ett sparmål och följ framstegen.
-• Föra resejournal – lägg till minnen, betyg och kommentarer efter resan.
-• Upptäcka inspiration – se topplistor och statistik baserat på egna eller globala data.
-
-⚙️ Funktionalitet
-1. Resmålshantering
-– Lägg till destination (land, stad).
-– Ange pris och budget (egen valuta).
-– Ange datum (från/till).
-– Ange antal personer.
-– Möjlighet att ändra eller ta bort resor.
-– Filtrera resor utifrån datum, pris eller destination.
-2. Budget & Sparande
-– Sätt en totalbudget för kommande resa.
-– Se hur mycket som återstår att spara.
-– Möjlighet till återkommande sparande (t.ex. månadsspar).
-– Få varningar eller notiser om man ligger under/över budget.
-3. Historik & Statistik
-– Se tidigare resor och uppdatera recensioner.
-– Visa topplistor (mest populära destinationer, top 5 egna resor).
-– Filtrera statistik på datum, prisnivå eller kategori (sol, äventyr, kultur).
-4. Feedback & Recensioner
-– Betygsätt tidigare resor (1–5 stjärnor).
-– Skriv kommentarer (vad var bra/mindre bra).
-– Valfri verifiering via bokningsnummer för att undvika falska recensioner.
-🧑‍💻 Användarhantering
-Välkomstmeny:
-– Logga in (användarnamn + lösenord).
-– Registrera nytt konto (förnamn, efternamn, e-post, telefon).
-– Glömt lösenord?
-När användaren är inloggad:
-– Lägg till ny resa (manuellt, via chatt, eller baserat på tidigare resor).
-– Visa nuvarande och kommande resor (möjlighet att uppdatera).
-– Visa tidigare resor och recensioner.
-– Budgetöversikt.
-– Statistik (topp 5, genomsnitt, sparmål).
-– Notiser (påminnelser, sparstatus, erbjudanden).
-– Support (FAQ, kontakt).
-– Logga ut.
-🗂️ Menystruktur (för konsol/app-prototyp)
-• 1. Lägg till resa – Land, Stad, Betyg, Kostnad, Datum, Kommentar (vad var bra/dåligt).
-• 2. Konto – Logga in, Registrera, Glömt lösenord.
-• 3. Statistik & Budget – Visa topplistor, sparmål, tidigare resultat.
