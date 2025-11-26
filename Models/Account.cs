@@ -9,8 +9,9 @@ namespace Travel_Journal.Models
     public class Account
     {
         public string UserName { get; set; } = string.Empty; // Användarnamn
+
+        [System.Text.Json.Serialization.JsonIgnore] // Ignorera vid JSON-serialisering raden nedan
         public string Password { get; set; } = string.Empty; // Lösenord
-        public string RecoveryCode { get; set; } = string.Empty; // Återställningskod
         public DateTime CreatedAt { get; set; } = default; // Tid kontot skapades
         public decimal Savings { get; set; } = 0m; // Sparkonto
         public string? Email { get; set; } // E-postadress för 2FA och återställning
@@ -18,7 +19,10 @@ namespace Travel_Journal.Models
         public bool TwoFactorEnabled { get; set; } // Man kan välja att aktivera 2FA och få kod varje gång man ska logga in 
         public bool IsAdmin { get; set; } = false; // Detta blir till json fil och admin panel
 
+        [System.Text.Json.Serialization.JsonIgnore] // Ignorera vid JSON-serialisering raden nedan
         public string? PendingTwoFactorCodeHash { get; set; } // Tillfällig lagring av 2FA-kodens hash
+
+        [System.Text.Json.Serialization.JsonIgnore] // Ignorera vid JSON-serialisering raden nedan
         public DateTime? PendingTwoFactorExpiresUtc { get; set; } // Utgångstid för den tillfälliga 2FA-koden 10 min 
         public string? DreamDestination { get; set; } // Användarens drömresmål för att spara pengar 
         public decimal? DreamBudget { get; set; } // Budget för drömresmålet
