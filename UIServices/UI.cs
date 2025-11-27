@@ -187,19 +187,25 @@ namespace Travel_Journal.UIServices
             };
             AnsiConsole.Write(header);
 
-            // Dynamiska informationsrader
-            var lines = new List<string>
-    {
-        $"[grey]Country:[/]        {(string.IsNullOrWhiteSpace(country) ? "-" : country)}",
-        $"[grey]City:[/]           {(string.IsNullOrWhiteSpace(city) ? "-" : city)}",
-        $"[grey]Budget:[/]         {(budget == 0 ? "-" : budget.ToString())}",
-        $"[grey]Dates:[/]          {(start == default ? "-" : start.ToString("yyyy-MM-dd"))} → {(end == default ? "-" : end.ToString("yyyy-MM-dd"))}",
-        $"[grey]Passengers:[/]     {(passengers == 0 ? "-" : passengers.ToString())}"
-    };
+            // 1. Skapa en tom lista först
+            var lines = new List<string>();
 
+            // 2. Lägg till standardraderna manuellt i rätt ordning
+            lines.Add($"[grey]Country:[/]        {(string.IsNullOrWhiteSpace(country) ? "-" : country)}");
+            lines.Add($"[grey]City:[/]           {(string.IsNullOrWhiteSpace(city) ? "-" : city)}");
+            lines.Add($"[grey]Budget:[/]         {(budget == 0 ? "-" : budget.ToString())}");
+
+            // 3. HÄR kontrollerar vi Cost. Eftersom vi gör det här, hamnar den direkt under Budget.
             if (cost.HasValue)
+            {
                 lines.Add($"[grey]Cost:[/]           {cost.Value}");
+            }
 
+            // 4. Fortsätt med datum och passagerare
+            lines.Add($"[grey]Dates:[/]          {(start == default ? "-" : start.ToString("yyyy-MM-dd"))} → {(end == default ? "-" : end.ToString("yyyy-MM-dd"))}");
+            lines.Add($"[grey]Passengers:[/]     {(passengers == 0 ? "-" : passengers.ToString())}");
+
+            // 5. Lägg till betyg och recension på slutet om de finns
             if (score.HasValue)
                 lines.Add($"[grey]Rating:[/]         {score.Value}/5");
 
@@ -211,7 +217,7 @@ namespace Travel_Journal.UIServices
             {
                 Border = BoxBorder.Rounded,
                 BorderStyle = new Style(Color.Grey),
-                Header = new PanelHeader(title, Justify.Center) // <-- FIX HÄR
+                Header = new PanelHeader(title, Justify.Center)
             };
 
             AnsiConsole.Write(panel);
